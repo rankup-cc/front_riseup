@@ -15,5 +15,3 @@ export default defineConfig({
     host: 'react.test'
   },
 })
-
-
