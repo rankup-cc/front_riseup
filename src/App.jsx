@@ -17,6 +17,7 @@ import LoadingOverlay from "@/components/Loading/LoadingOverlay.jsx";
 import ResendVerification from "@/pages/auth/FormVerifyEmail.jsx";
 import RequireEmailNotVerified from "@/RequireEmailNotVerified.jsx";
 import Navbar from "@/components/layout/Navbar.jsx";
+import Page from "@/pages/dashboard.jsx";
 
 function AppLayout() {
     const fetchUser = useAuthStore((state) => state.fetchUser);
@@ -71,6 +72,7 @@ export default function App() {
                         element: <RequireAuthVerified />,
                         children: [
                             { path: "", element: <Accueil /> },
+                            { path: "dashboard", element: <Page /> },
                         ],
                     },
                 { path: "auth/verify-email", element: <VerifyEmail /> },
