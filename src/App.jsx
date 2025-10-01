@@ -18,6 +18,8 @@ import ResendVerification from "@/pages/auth/FormVerifyEmail.jsx";
 import RequireEmailNotVerified from "@/RequireEmailNotVerified.jsx";
 import Navbar from "@/components/layout/Navbar.jsx";
 import Page from "@/pages/dashboard.jsx";
+import Trouver from "@/pages/trouver.jsx";
+import ClassementPage from "@/pages/classement.jsx";
 
 function AppLayout() {
     const fetchUser = useAuthStore((state) => state.fetchUser);
@@ -73,6 +75,8 @@ export default function App() {
                         children: [
                             { path: "", element: <Accueil /> },
                             { path: "dashboard", element: <Page /> },
+                            { path: "trouver", element: <Trouver /> },
+                            { path: "classement", element: <ClassementPage />     }
                         ],
                     },
                 { path: "auth/verify-email", element: <VerifyEmail /> },

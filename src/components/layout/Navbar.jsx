@@ -19,8 +19,9 @@ import {Button} from "@/components/ui/button.jsx";
 // 1. Centraliser les liens de navigation dans un tableau
 const navLinks = [
     { href: "/", label: "Accueil" },
-    { href: "/dashboard", label: "Dashboard" },
+    { href: "/dashboard", label: "Suivi personnel" },
     { href: "/trouver", label: "Trouver un partenaire" },
+    { href: "/classement", label: "Classements" },
 ];
 
 export default function Navbar() {

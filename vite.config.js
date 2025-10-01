@@ -12,6 +12,6 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    host: 'react.test'
+    host: 'react.test',
   },
 })

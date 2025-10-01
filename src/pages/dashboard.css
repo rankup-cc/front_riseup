@@ -1,18 +1,47 @@
 /* dashboard.css */
-.dashboard-container * {
+body {
+    background: #FFF;
     margin: 0;
     padding: 0;
-    box-sizing: border-box;
+}
+.dashboard-container {
+  max-width: 1320px;
+  width: 120%;
+  margin-left: 10px;                 /* was: 0 auto  → centers; remove to stick left */
+  padding: 32px 24px 24px 8px;/* more top space; tiny left inset */
 }
 
-.dashboard-container {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: #FFFFFF;
-    min-height: 100vh;
-    color: #FFFFFF;
-    width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
+/* 2) Grid: add extra gap below the tabs (navTabs → legend/iframe) */
+.dashboard-shell {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  width: 100%;
+  margin-top: 12px;          /* extra breathing room under navbar/tabs */
+}
+
+/* 3) Legend card: keep narrow, hug the left edge a bit more */
+.legend-card {
+  max-width: 680px;
+  width: 550px;               /* was 600px; adjust as needed */
+  margin-left: 0;
+  padding-right: 100px;         /* nudge a little more to the left */
+  height: auto;
+}
+
+/* 4) Tabs: leave more space below them so the legend doesn’t feel glued */
+.dashboard-container .nav-tabs {
+  justify-content: flex-end;
+  gap: 12px;
+  padding-right: 50px;               /* was 5px; increase if you want more */
+  margin-right: 50px;
+  margin-bottom: 32px;       /* was 30px; increase if you want even more */
+}
+/* Mobile: stack */
+@media (max-width: 1024px) {
+  .dashboard-shell { grid-template-columns: 1fr; }
+  .legend-card { max-width: 100%; }
 }
 
 /* Header avec profil */
@@ -115,10 +144,13 @@
 .dashboard-container .nav-tabs {
     display: flex;
     background: #213A57;
+    width: 890px; /* ← ajusté pour s'aligner avec le reste */
     border-radius: 15px;
     margin-bottom: 30px;
+    margin-left: 150px; /*décalage de la barre de navigation*/
     padding: 5px;
-    border: 1px solid rgba(69, 223, 177, 0.2);
+    border: 1px solid rgba(69, 223, 177, 0.2);/* ← aligne à droite */
+    gap: 12px;                 /* ← espace entre boutons (remplace margin-right) */
 }
 
 .dashboard-container .nav-tab {
@@ -126,10 +158,11 @@
     background: transparent;
     border: none;
     color: #E0F2F1;
-    padding: 15px 20px;
+    padding: 10px 20px;
     border-radius: 10px;
     cursor: pointer;
-    font-weight: 500;
+    margin-left: 0;
+    font-weight: 100;
     transition: all 0.3s ease;
     font-size: 16px;
 }
@@ -146,8 +179,9 @@
 
 /* Content sections */
 .dashboard-container .content-section {
-    display: none;
     animation: fadeIn 0.5s ease-in-out;
+    margin-left: 150px;
+    width: 2000px; /*largeur del'encadré calcul*/
 }
 
 .dashboard-container .content-section.active {
@@ -505,3 +539,4 @@
         flex-direction: column;
     }
 }
+
