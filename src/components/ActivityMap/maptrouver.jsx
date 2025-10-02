@@ -54,32 +54,38 @@ function jitterMeters(lat, lng, meters = 40) {
   const dy = r * Math.sin(t) / Math.cos(lat * Math.PI / 180);
   return [lat + dy, lng + dx];
 }
-
 useEffect(() => {
-  if (!usersProp || usersProp.length === 0) {
-    const base = userPos;
-    const rnd = (min, max) => Math.random() * (max - min) + min;
+  fetch("http://backend.react.test:8000/api/events")
+    .then((res) => res.json())
+    .then(setEvents)
+    .catch((err) => console.error("Erreur fetch events:", err));
+}, []);
 
-    const gen = Array.from({ length: NUM_USERS }).map((_, i) => {
-      // zone plus large
-      const lat0 = base[0] + rnd(-LAT_SPREAD, LAT_SPREAD);
-      const lng0 = base[1] + rnd(-LNG_SPREAD, LNG_SPREAD);
-      // léger décalage pour éviter les superpositions exactes
-      const [lat, lng] = jitterMeters(lat0, lng0, JITTER_M);
+// useEffect(() => {
+//   if (!usersProp || usersProp.length === 0) {
+//     const base = userPos;
+//     const rnd = (min, max) => Math.random() * (max - min) + min;
 
-      return {
-        id: i + 1,
-        name: `Runner ${i + 1}`,
-        rank: RANKS[Math.floor(Math.random() * RANKS.length)],
-        lat,
-        lng,
-        hour: Math.floor(Math.random() * 24),
-      };
-    });
+//     const gen = Array.from({ length: NUM_USERS }).map((_, i) => {
+//       // zone plus large
+//       const lat0 = base[0] + rnd(-LAT_SPREAD, LAT_SPREAD);
+//       const lng0 = base[1] + rnd(-LNG_SPREAD, LNG_SPREAD);
+//       // léger décalage pour éviter les superpositions exactes
+//       const [lat, lng] = jitterMeters(lat0, lng0, JITTER_M);
 
-    setUsers(gen);
-  }// eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+//       return {
+//         id: i + 1,
+//         name: `Runner ${i + 1}`,
+//         rank: RANKS[Math.floor(Math.random() * RANKS.length)],
+//         lat,
+//         lng,
+//         hour: Math.floor(Math.random() * 24),
+//       };
+//     });
+
+//     setUsers(gen);
+//   }// eslint-disable-next-line react-hooks/exhaustive-deps
+//   }, []);
 
   // Centrage sur la géolocalisation de l’utilisateur (si autorisée)
   useEffect(() => {
@@ -119,10 +125,30 @@ useEffect(() => {
     });
   }
 
-  function saveEvent() {
-    setEvents((prev) => [...prev, { ...draftEvent, id: Date.now() }]);
-    setDraftEvent(null);
-    setCreateMode(false);
+  async function saveEvent() {
+    try {
+      const res = await fetch("http://backend.react.test:8000/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: draftEvent.title,
+          description: draftEvent.description,
+          latitude: draftEvent.lat,
+          longitude: draftEvent.lng,
+          start_time: draftEvent.when,
+          end_time: draftEvent.when, // ou autre logique
+          color_group: "A",          // ou choisi dynamiquement
+          training_rank: "B",        // idem
+        }),
+      });
+
+      const newEvent = await res.json();
+      setEvents((prev) => [...prev, newEvent]);
+      setDraftEvent(null);
+      setCreateMode(false);
+    } catch (err) {
+      console.error("Erreur création event:", err);
+    }
   }
 
   return (
@@ -267,15 +293,19 @@ useEffect(() => {
           {events.map((ev) => (
             <CircleMarker
               key={ev.id}
-              center={[ev.lat, ev.lng]}
+              center={[ev.latitude, ev.longitude]}
               radius={10}
-              pathOptions={{ color: "#7C3AED", weight: 3, fillColor: "#C4B5FD", fillOpacity: 0.7 }}
-            >
+              pathOptions={{
+                color: rankColor(ev.color_group),       // ✅ couleur bordure
+                fillColor: rankColor(ev.color_group),   // ✅ couleur remplissage
+                weight: 1,
+                fillOpacity: 0.7
+                }}            >
               <Popup>
                 <div style={{ minWidth: 220 }}>
                   <div style={{ fontWeight: 800, color: "#213A57" }}>{ev.title || "Évènement"}</div>
-                  <div style={{ color: "#14919B", margin: "6px 0" }}>{ev.when}</div>
-                  <div style={{ color: "#213A57" }}>Niveaux: {ev.minRank} → {ev.maxRank}</div>
+                  <div style={{ color: "#14919B", margin: "6px 0" }}>{ev.start_time}</div>
+                  <div style={{ color: "#213A57" }}>Niveaux: {ev.training_rank} </div>
                   {ev.description ? <div style={{ marginTop: 6, color: "#213A57" }}>{ev.description}</div> : null}
                   <button
                     style={{
