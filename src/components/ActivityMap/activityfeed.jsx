@@ -3,6 +3,35 @@ import React, { useState, useEffect } from 'react';
 const ActivityFeed = () => {
     const [activeTab, setActiveTab] = useState('activities'); 
     const [events, setEvents] = useState([]);
+    const joinEvent = async (eventId) => {
+    try {
+        await fetch(`http://backend.react.test:8000/api/events/${eventId}/join`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + localStorage.getItem("token"), // si tu utilises Sanctum/JWT
+        },
+        });
+        alert("Inscription réussie !");
+    } catch (err) {
+        console.error("Erreur inscription:", err);
+    }
+    };
+
+    const leaveEvent = async (eventId) => {
+    try {
+        await fetch(`http://backend.react.test:8000/api/events/${eventId}/leave`, {
+        method: "DELETE",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + localStorage.getItem("token"),
+        },
+        });
+        alert("Désinscription réussie !");
+    } catch (err) {
+        console.error("Erreur désinscription:", err);
+    }
+    };
 
     // --- activités en local (mock) ---
     const activities = [
@@ -35,9 +64,7 @@ const ActivityFeed = () => {
         console.log(`Toggle like for activity ${activityId}`);
     };
 
-    const joinEvent = (eventId) => {
-        console.log(`Join event ${eventId}`);
-    };
+
 
     const getDifficultyColor = (difficulty) => {
         switch(difficulty) {

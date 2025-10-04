@@ -20,11 +20,21 @@ import Navbar from "@/components/layout/Navbar.jsx";
 import Page from "@/pages/dashboard.jsx";
 import Trouver from "@/pages/trouver.jsx";
 import ClassementPage from "@/pages/classement.jsx";
+import AbonnesPage from './pages/abonnes.jsx';
 
 function AppLayout() {
     const fetchUser = useAuthStore((state) => state.fetchUser);
     const isFetchingUser = useAuthStore((state) => state.isFetchingUser);
     const user = useAuthStore((state) => state.user);
+    useEffect(() => {
+    fetch("http://backend.react.test:8000/sanctum/csrf-cookie", {
+        method: "GET",
+        credentials: "include",
+    })
+        .then(() => console.log("CSRF cookie initialisé ✅"))
+        .catch(err => console.error("Erreur init CSRF:", err));
+    }, []);
+
     useEffect(() => {
         fetchUser();
     }, [fetchUser]);
@@ -45,6 +55,7 @@ function AppLayout() {
 }
 
 export default function App() {
+    
     const router = createBrowserRouter([
         {
             path: "/",
@@ -76,7 +87,8 @@ export default function App() {
                             { path: "", element: <Accueil /> },
                             { path: "dashboard", element: <Page /> },
                             { path: "trouver", element: <Trouver /> },
-                            { path: "classement", element: <ClassementPage />     }
+                            { path: "classement", element: <ClassementPage />     },
+                            { path: "abonnes", element: <AbonnesPage />     }
                         ],
                     },
                 { path: "auth/verify-email", element: <VerifyEmail /> },

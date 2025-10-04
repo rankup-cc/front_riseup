@@ -150,6 +150,78 @@ useEffect(() => {
       console.error("Erreur création event:", err);
     }
   }
+  // Fonction pour créer un évènement
+async function saveEvent() {
+  try {
+    const res = await fetch("http://backend.react.test:8000/api/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        title: draftEvent.title,
+        description: draftEvent.description,
+        latitude: draftEvent.lat,
+        longitude: draftEvent.lng,
+        start_time: draftEvent.when,
+        end_time: draftEvent.when,
+        color_group: "A",
+        training_rank: "B",
+      }),
+    });
+
+    const newEvent = await res.json();
+    setEvents((prev) => [...prev, newEvent]);
+    setDraftEvent(null);
+    setCreateMode(false);
+  } catch (err) {
+    console.error("Erreur création event:", err);
+  }
+}
+
+// Fonction pour rejoindre un évènement
+async function joinEvent(eventId) {
+  try {
+    await fetch(`http://backend.react.test:8000/api/events/${eventId}/join`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        
+      },
+      credentials: "include",
+    });
+
+    setEvents((prev) =>
+      prev.map((ev) =>
+        ev.id === eventId ? { ...ev, isJoined: true } : ev
+      )
+    );
+  } catch (err) {
+    console.error("Erreur inscription:", err);
+  }
+}
+
+// Fonction pour se désinscrire
+async function leaveEvent(eventId) {
+  try {
+    await fetch(`http://backend.react.test:8000/api/events/${eventId}/leave`, {
+      method: "DELETE",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        
+      },
+    });
+
+    setEvents((prev) =>
+      prev.map((ev) =>
+        ev.id === eventId ? { ...ev, isJoined: false } : ev
+      )
+    );
+  } catch (err) {
+    console.error("Erreur désinscription:", err);
+  }
+}
+
 
   return (
     <div
@@ -307,7 +379,7 @@ useEffect(() => {
                   <div style={{ color: "#14919B", margin: "6px 0" }}>{ev.start_time}</div>
                   <div style={{ color: "#213A57" }}>Niveaux: {ev.training_rank} </div>
                   {ev.description ? <div style={{ marginTop: 6, color: "#213A57" }}>{ev.description}</div> : null}
-                  <button
+                  {/* <button
                     style={{
                       marginTop: 8,
                       padding: "6px 10px",
@@ -319,7 +391,25 @@ useEffect(() => {
                     }}
                   >
                     Rejoindre
-                  </button>
+                  </button> */
+                 <button
+                  onClick={() => ev.isJoined ? leaveEvent(ev.id) : joinEvent(ev.id)}
+                  style={{
+                    background: ev.isJoined ? "#14919B" : "#45DFB1",
+                    color: ev.isJoined ? "#E0F2F1" : "#213A57",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "8px 16px",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                    cursor: "pointer",
+                  }}
+                >
+                  {ev.isJoined ? "Se désinscrire" : "Rejoindre"}
+                </button>
+
+
+                  }
                 </div>
               </Popup>
             </CircleMarker>
