@@ -1,5 +1,7 @@
 import { MapContainer, TileLayer, CircleMarker, Popup, useMapEvents } from "react-leaflet";
 import { useEffect, useMemo, useState } from "react";
+import { useAuthStore } from "../../hooks/AuthStore";
+
 
 const RANKS = ["S", "A", "B", "C", "D", "E", "F"];
 const rankColor = (r) =>
@@ -22,6 +24,17 @@ function ClickToCreate({ enabled, onClick }) {
   });
   return null;
 }
+function handleCreateEvent(latlng) {
+  setDraftEvent({
+    lat: latlng.lat,
+    lng: latlng.lng,
+    title: "",
+    when: "",
+    rank: "S",
+    description: "",
+  });
+}
+
 
 /**
  * Props optionnelles :
@@ -32,6 +45,7 @@ export default function MapTrouver({
   initialCenter = [48.8566, 2.3522],
   users: usersProp = [],   // ← défaut conseillé
 })  {
+  const { user } = useAuthStore();
   const [userPos, setUserPos] = useState(initialCenter);
   const [users, setUsers] = useState(usersProp || []);
   const [selectedRanks, setSelectedRanks] = useState(new Set(RANKS));
@@ -55,12 +69,23 @@ function jitterMeters(lat, lng, meters = 40) {
   return [lat + dy, lng + dx];
 }
 useEffect(() => {
-  fetch("http://backend.react.test:8000/api/events")
+  fetch("http://backend.react.test:8000/api/events", {
+    credentials: "include", // ✅ obligatoire pour envoyer le cookie de session
+  })
     .then((res) => res.json())
     .then(setEvents)
     .catch((err) => console.error("Erreur fetch events:", err));
 }, []);
 
+
+
+function getCsrfToken() {
+  const token = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith("XSRF-TOKEN="))
+    ?.split("=")[1];
+  return token ? decodeURIComponent(token) : null;
+}
 // useEffect(() => {
 //   if (!usersProp || usersProp.length === 0) {
 //     const base = userPos;
@@ -119,8 +144,7 @@ useEffect(() => {
       lng: latlng.lng,
       title: "",
       when: "",
-      minRank: "C",
-      maxRank: "S",
+      rank: "S",
       description: "",
     });
   }
@@ -136,8 +160,7 @@ useEffect(() => {
           latitude: draftEvent.lat,
           longitude: draftEvent.lng,
           start_time: draftEvent.when,
-          end_time: draftEvent.when, // ou autre logique
-          color_group: "A",          // ou choisi dynamiquement
+          end_time: draftEvent.when, // ou autre logique      
           training_rank: "B",        // idem
         }),
       });
@@ -145,7 +168,7 @@ useEffect(() => {
       const newEvent = await res.json();
       setEvents((prev) => [...prev, newEvent]);
       setDraftEvent(null);
-      setCreateMode(false);
+      setCreateMode(True);
     } catch (err) {
       console.error("Erreur création event:", err);
     }
@@ -153,9 +176,13 @@ useEffect(() => {
   // Fonction pour créer un évènement
 async function saveEvent() {
   try {
+    const csrfToken = getCsrfToken();
     const res = await fetch("http://backend.react.test:8000/api/events", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+          "Content-Type": "application/json",
+          "X-XSRF-TOKEN": csrfToken, // ✅ Ajout ici
+        },
       credentials: "include",
       body: JSON.stringify({
         title: draftEvent.title,
@@ -164,8 +191,7 @@ async function saveEvent() {
         longitude: draftEvent.lng,
         start_time: draftEvent.when,
         end_time: draftEvent.when,
-        color_group: "A",
-        training_rank: "B",
+        training_rank: draftEvent.rank,
       }),
     });
 
@@ -181,18 +207,20 @@ async function saveEvent() {
 // Fonction pour rejoindre un évènement
 async function joinEvent(eventId) {
   try {
+    const csrfToken = getCsrfToken();
     await fetch(`http://backend.react.test:8000/api/events/${eventId}/join`, {
       method: "POST",
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
-        
+        "X-XSRF-TOKEN": csrfToken, // ✅ Ajout ici
       },
-      credentials: "include",
+      
     });
 
     setEvents((prev) =>
       prev.map((ev) =>
-        ev.id === eventId ? { ...ev, isJoined: true } : ev
+        ev.id === eventId ? { ...ev, isJoined: true, participants_count: (ev.participants_count ?? 0) + 1, } : ev
       )
     );
   } catch (err) {
@@ -203,24 +231,55 @@ async function joinEvent(eventId) {
 // Fonction pour se désinscrire
 async function leaveEvent(eventId) {
   try {
+    const csrfToken = getCsrfToken();
     await fetch(`http://backend.react.test:8000/api/events/${eventId}/leave`, {
       method: "DELETE",
       credentials: "include",
       headers: {
         "Content-Type": "application/json",
-        
-      },
+        "X-XSRF-TOKEN": csrfToken, // ✅ Ajout ici
+      }
     });
 
     setEvents((prev) =>
       prev.map((ev) =>
-        ev.id === eventId ? { ...ev, isJoined: false } : ev
+        ev.id === eventId ? { ...ev, isJoined: false, participants_count: (ev.participants_count ?? 0) - 1, } : ev
       )
     );
   } catch (err) {
     console.error("Erreur désinscription:", err);
   }
 }
+async function deleteEvent(eventId) {
+  if (!window.confirm("Voulez-vous vraiment supprimer cet évènement ?")) return;
+
+  try {
+    const csrfToken = getCsrfToken();
+    const res = await fetch(`http://backend.react.test:8000/api/events/${eventId}`, {
+      method: "DELETE",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        "X-XSRF-TOKEN": csrfToken,
+      },
+    });
+
+    if (!res.ok) {
+      const txt = await res.text();
+      console.error("Erreur suppression:", res.status, txt);
+      return;
+    }
+
+    // Supprime localement sans recharger la page
+    setEvents((prev) => prev.filter((ev) => ev.id !== eventId));
+  } catch (err) {
+    console.error("Erreur suppression event:", err);
+  }
+}
+const filteredEvents = useMemo(
+  () => events.filter((ev) => selectedRanks.has(ev.training_rank)),
+  [events, selectedRanks]
+);
 
 
   return (
@@ -362,58 +421,100 @@ async function leaveEvent(eventId) {
           ))}
 
           {/* Évènements existants */}
-          {events.map((ev) => (
-            <CircleMarker
-              key={ev.id}
-              center={[ev.latitude, ev.longitude]}
-              radius={10}
-              pathOptions={{
-                color: rankColor(ev.color_group),       // ✅ couleur bordure
-                fillColor: rankColor(ev.color_group),   // ✅ couleur remplissage
-                weight: 1,
-                fillOpacity: 0.7
-                }}            >
-              <Popup>
-                <div style={{ minWidth: 220 }}>
-                  <div style={{ fontWeight: 800, color: "#213A57" }}>{ev.title || "Évènement"}</div>
-                  <div style={{ color: "#14919B", margin: "6px 0" }}>{ev.start_time}</div>
-                  <div style={{ color: "#213A57" }}>Niveaux: {ev.training_rank} </div>
-                  {ev.description ? <div style={{ marginTop: 6, color: "#213A57" }}>{ev.description}</div> : null}
-                  {/* <button
-                    style={{
-                      marginTop: 8,
-                      padding: "6px 10px",
-                      borderRadius: 8,
-                      border: "none",
-                      background: "#45DFB1",
-                      color: "#213A57",
-                      fontWeight: 700,
+          {filteredEvents.map((ev) => {
+            const isMine = user && ev.created_by === user.id; // ✅ ton propre event
+
+            return (
+              <>
+                {/* Halo rouge autour si c’est ton event */}
+                {isMine && (
+                  <CircleMarker
+                    center={[ev.latitude, ev.longitude]}
+                    radius={14}
+                    pathOptions={{
+                      color: "rgba(255,0,0,0.5)", // rouge transparent
+                      weight: 0,
+                      fillOpacity: 0,
                     }}
-                  >
-                    Rejoindre
-                  </button> */
-                 <button
-                  onClick={() => ev.isJoined ? leaveEvent(ev.id) : joinEvent(ev.id)}
-                  style={{
-                    background: ev.isJoined ? "#14919B" : "#45DFB1",
-                    color: ev.isJoined ? "#E0F2F1" : "#213A57",
-                    border: "none",
-                    borderRadius: "8px",
-                    padding: "8px 16px",
-                    fontSize: "13px",
-                    fontWeight: "600",
-                    cursor: "pointer",
+                  />
+                )}
+
+                <CircleMarker
+                  key={ev.id}
+                  center={[ev.latitude, ev.longitude]}
+                  radius={10}
+                  pathOptions={{
+                    color: isMine ? "#FF0000" : rankColor(ev.training_rank), // 🔴 contour rouge si c’est le tien
+                    weight: isMine ? 3 : 1,
+                    fillColor: rankColor(ev.training_rank),
+                    fillOpacity: 0.7,
                   }}
                 >
-                  {ev.isJoined ? "Se désinscrire" : "Rejoindre"}
-                </button>
+                  <Popup>
+                    <div style={{ minWidth: 220 }}>
+                      <div style={{ fontWeight: 800, color: "#213A57" }}>
+                        {ev.title || "Évènement"}
+                      </div>
+                      <div style={{ color: "#14919B", margin: "6px 0" }}>{ev.start_time}</div>
+                      <div style={{ color: "#213A57" }}>Niveaux: {ev.training_rank}</div>
+                      <div style={{ color: "#14919B", marginTop: 4 }}>
+                        Participants : {ev.participants_count ?? 0}
+                      </div>
+                      {ev.description && (
+                        <div style={{ marginTop: 6, color: "#213A57" }}>
+                          {ev.description}
+                        </div>
+                      )}
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "10px", // ✅ espace vertical automatique
+                          marginTop: "10px",
+                        }}
+                      >
+                        <button
+                          onClick={() => ev.isJoined ? leaveEvent(ev.id) : joinEvent(ev.id)}
+                          style={{
+                            background: ev.isJoined ? "#14919B" : "#45DFB1",
+                            color: ev.isJoined ? "#E0F2F1" : "#213A57",
+                            border: "none",
+                            borderRadius: "8px",
+                            padding: "8px 16px",
+                            fontSize: "13px",
+                            fontWeight: "600",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {ev.isJoined ? "Se désinscrire" : "Rejoindre"}
+                        </button>
 
+                        {ev.created_by === user?.id && (
+                          <button
+                            onClick={() => deleteEvent(ev.id)}
+                            style={{
+                              background: "#EF4444",
+                              color: "#FFF",
+                              border: "none",
+                              borderRadius: "8px",
+                              padding: "8px 16px",
+                              fontSize: "13px",
+                              fontWeight: "600",
+                              cursor: "pointer",
+                            }}
+                          >
+                            Supprimer
+                          </button>
+                        )}
+                      </div>
 
-                  }
-                </div>
-              </Popup>
-            </CircleMarker>
-          ))}
+                      
+                    </div>
+                  </Popup>
+                </CircleMarker>
+              </>
+            );
+          })}
 
           {/* Mode création : clic sur la carte pour poser l’évènement */}
           <ClickToCreate enabled={createMode} onClick={handleCreateEvent} />
@@ -425,7 +526,12 @@ async function leaveEvent(eventId) {
               radius={10}
               pathOptions={{ color: "#F59E0B", weight: 2, fillColor: "#FDE68A", fillOpacity: 0.6 }}
             >
-              <Popup autoOpen>
+              <Popup
+                closeOnClick={false}
+                autoClose={false}
+                autoPan={false}
+                interactive={true} // ✅ permet les clics dans le contenu
+              >
                 <div style={{ minWidth: 240 }}>
                   <div style={{ fontWeight: 800, color: "#213A57", marginBottom: 8 }}>Nouvel évènement</div>
                   <div style={{ display: "grid", gap: 8 }}>
@@ -443,19 +549,8 @@ async function leaveEvent(eventId) {
                     />
                     <div style={{ display: "flex", gap: 8 }}>
                       <select
-                        value={draftEvent.minRank}
-                        onChange={(e) => setDraftEvent({ ...draftEvent, minRank: e.target.value })}
-                        style={{ padding: 8, borderRadius: 8, border: "1px solid #14919B", flex: 1 }}
-                      >
-                        {RANKS.map((r) => (
-                          <option key={r} value={r}>
-                            {r}
-                          </option>
-                        ))}
-                      </select>
-                      <select
-                        value={draftEvent.maxRank}
-                        onChange={(e) => setDraftEvent({ ...draftEvent, maxRank: e.target.value })}
+                        value={draftEvent.rank}
+                        onChange={(e) => setDraftEvent({ ...draftEvent, rank: e.target.value })}
                         style={{ padding: 8, borderRadius: 8, border: "1px solid #14919B", flex: 1 }}
                       >
                         {RANKS.map((r) => (
@@ -474,7 +569,11 @@ async function leaveEvent(eventId) {
                     />
                     <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
                       <button
-                        onClick={saveEvent}
+                        type="button" // ✅ important pour éviter un submit fantôme
+                        onClick={() => {
+                          console.log("Clic bouton créer ✅");
+                          saveEvent();
+                        }}
                         style={{
                           flex: 1,
                           padding: "8px 10px",
@@ -483,6 +582,7 @@ async function leaveEvent(eventId) {
                           background: "#45DFB1",
                           color: "#213A57",
                           fontWeight: 800,
+                          cursor: "pointer",
                         }}
                       >
                         Créer
