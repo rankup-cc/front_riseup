@@ -1,0 +1,245 @@
+:root {
+  --bg: #ffffff;
+  --ink: #213A57;
+  --mint: #45DFB1;
+  --mint-2: #14919B;
+  --paper: #E0F2F1;
+  --border: rgba(69, 223, 177, 0.2);
+}
+
+
+.profile-page {
+  background: var(--bg);
+  min-height: 100vh;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.encadré-bienvenue {
+  background: linear-gradient(135deg, #14919B, #45DFB1);
+  border-radius: 40px;
+  font-size: 22px;
+  font-weight: 600;
+  width: 1100px;
+  height: 100px;
+  padding-top: 10px;
+  padding-left: 10px;
+  text-align: center-left;
+  margin-top: -50px;
+  margin-left: -10px;
+}
+
+.profile-wrap {
+  width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Header */
+.profile-header {
+  background: var(--ink);
+  border-radius: 20px;
+  padding: 25px 30px;
+  margin-bottom: 30px;
+  box-shadow: 0 5px 15px rgba(0,0,0,.3);
+  border: 1px solid var(--border);
+}
+.profile-header h1 {
+  color: var(--paper);
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* Tabs */
+.profile-tabs {
+  display: flex;
+  background: var(--ink);
+  border-radius: 15px;
+  margin-bottom: 30px;
+  padding: 5px;
+  border: 1px solid var(--border);
+}
+.tab-btn {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  color: var(--paper);
+  padding: 15px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 16px;
+  transition: .25s ease;
+}
+.tab-btn.active {
+  background: linear-gradient(135deg, var(--mint), var(--mint-2));
+}
+
+/* Card (onglet info) */
+.info-card {
+  background: var(--ink);
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 5px 15px rgba(0,0,0,.3);
+  border: 1px solid var(--border);
+}
+.info-card__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+.info-card h2 {
+  color: var(--paper);
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Buttons */
+.save-btn {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: .25s ease;
+}
+.save-btn.primary {
+  background: var(--mint);
+  color: var(--ink);
+}
+.save-btn.ghost {
+  background: rgba(69, 223, 177, 0.2);
+  color: var(--paper);
+}
+
+/* Form */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+  margin-bottom: 30px;
+}
+
+.label {
+  color: var(--mint);
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  display: block;
+}
+.input {
+  width: 100%;
+  padding: 12px;
+  background: var(--paper);
+  border: 2px solid rgba(69, 223, 177, 0.3);
+  border-radius: 10px;
+  color: var(--ink);
+  font-size: 16px;
+  outline: none;
+}
+.readonly {
+  padding: 12px;
+  color: var(--paper);
+  font-size: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Ranks preview */
+.ranks-box {
+  background: rgba(69, 223, 177, 0.1);
+  border-radius: 15px;
+  padding: 25px;
+  margin-bottom: 20px;
+}
+.ranks-box h3 {
+  color: var(--mint);
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+.ranks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 15px;
+}
+.rank-card {
+  background: var(--paper);
+  border-radius: 12px;
+  padding: 15px;
+  text-align: center;
+}
+.rank-event {
+  color: #14919B;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.rank-badge {
+  color: #FFFFFF;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: bold;
+  margin: 0 auto 8px;
+}
+.rank-perf {
+  color: var(--ink);
+  font-size: 12px;
+}
+
+/* Stats */
+.stats-box {
+  background: rgba(69, 223, 177, 0.1);
+  border-radius: 15px;
+  padding: 25px;
+}
+.stats-box h3 {
+  color: var(--mint);
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+.stat {
+  text-align: center;
+}
+.stat-value {
+  color: var(--paper);
+  font-size: 36px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+.stat-label {
+  color: var(--mint);
+  font-size: 14px;
+  font-weight: 500;
+}
+.legend-card{
+    margin-left: -180px;
+}
+/* Savebar (onglet Rangs) */
+.savebar { margin-top: 16px; display: flex; align-items: center; gap: 12px; background: #0f2640; border: 1px solid rgba(69,223,177,.25); padding: 12px 14px; border-radius: 12px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: #6b7280; }
+.dot.ok { background: #45DFB1; }
+.savebar-text { color: #E0F2F1; font-size: 14px; }
+.savebar-btn { margin-left: auto; border: 0; border-radius: 10px; padding: 10px 16px; font-weight: 700; font-size: 14px; cursor: pointer; background: linear-gradient(135deg, var(--mint), var(--mint-2)); color: #0b1d2f; }
+.savebar-btn:disabled { opacity: .6; cursor: not-allowed; }
+
+/* Responsive */
+@media (max-width: 1280px) {
+  .profile-wrap { width: 100%; padding: 20px 16px; }
+}
+@media (max-width: 800px) {
+  .form-grid { grid-template-columns: 1fr; }
+}
