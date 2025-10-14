@@ -24,23 +24,8 @@ function ClickToCreate({ enabled, onClick }) {
   });
   return null;
 }
-function handleCreateEvent(latlng) {
-  setDraftEvent({
-    lat: latlng.lat,
-    lng: latlng.lng,
-    title: "",
-    when: "",
-    rank: "S",
-    description: "",
-  });
-}
 
 
-/**
- * Props optionnelles :
- * - initialCenter: [lat, lng] (défaut Paris)
- * - users: [{id, name, rank:'A'..'F', lat, lng, hour:0..23}]
- */
 export default function MapTrouver({
   initialCenter = [48.8566, 2.3522],
   users: usersProp = [],   // ← défaut conseillé
@@ -56,25 +41,25 @@ export default function MapTrouver({
   const [draftEvent, setDraftEvent] = useState(null);
   const [events, setEvents] = useState([]);
 
-const NUM_USERS   = 200;   // ← 25 -> 200
-const LAT_SPREAD  = 0.02;  // ← était 0.01 (≈ zone 2x plus large N/S)
-const LNG_SPREAD  = 0.03;  // ← était 0.015 (≈ zone 2x plus large E/O)
-const JITTER_M    = 50;    // ← décale chaque point de ~50 m aléatoirement
-  // Génère des utilisateurs factices si rien n'est passé en props
-function jitterMeters(lat, lng, meters = 40) {
-  const r = meters / 111_111;                 // ≈ degrés de lat pour X m
-  const t = Math.random() * Math.PI * 2;      // angle
-  const dx = r * Math.cos(t);
-  const dy = r * Math.sin(t) / Math.cos(lat * Math.PI / 180);
-  return [lat + dy, lng + dx];
-}
+
 useEffect(() => {
-  fetch("http://backend.react.test:8000/api/events", {
-    credentials: "include", // ✅ obligatoire pour envoyer le cookie de session
-  })
-    .then((res) => res.json())
-    .then(setEvents)
-    .catch((err) => console.error("Erreur fetch events:", err));
+  const fetchEvents = () => {
+    fetch("http://backend.react.test:8000/api/events", {
+      credentials: "include",
+    })
+      .then((res) => res.json())
+      .then(setEvents)
+      .catch((err) => console.error("Erreur fetch events:", err));
+  };
+
+  // Premier chargement
+  fetchEvents();
+
+  // Écoute quand un event est ajouté depuis ActivityFeed
+  window.addEventListener("eventsUpdated", fetchEvents);
+
+  // Nettoyage à la destruction du composant
+  return () => window.removeEventListener("eventsUpdated", fetchEvents);
 }, []);
 
 
@@ -86,33 +71,7 @@ function getCsrfToken() {
     ?.split("=")[1];
   return token ? decodeURIComponent(token) : null;
 }
-// useEffect(() => {
-//   if (!usersProp || usersProp.length === 0) {
-//     const base = userPos;
-//     const rnd = (min, max) => Math.random() * (max - min) + min;
 
-//     const gen = Array.from({ length: NUM_USERS }).map((_, i) => {
-//       // zone plus large
-//       const lat0 = base[0] + rnd(-LAT_SPREAD, LAT_SPREAD);
-//       const lng0 = base[1] + rnd(-LNG_SPREAD, LNG_SPREAD);
-//       // léger décalage pour éviter les superpositions exactes
-//       const [lat, lng] = jitterMeters(lat0, lng0, JITTER_M);
-
-//       return {
-//         id: i + 1,
-//         name: `Runner ${i + 1}`,
-//         rank: RANKS[Math.floor(Math.random() * RANKS.length)],
-//         lat,
-//         lng,
-//         hour: Math.floor(Math.random() * 24),
-//       };
-//     });
-
-//     setUsers(gen);
-//   }// eslint-disable-next-line react-hooks/exhaustive-deps
-//   }, []);
-
-  // Centrage sur la géolocalisation de l’utilisateur (si autorisée)
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -149,31 +108,7 @@ function getCsrfToken() {
     });
   }
 
-  async function saveEvent() {
-    try {
-      const res = await fetch("http://backend.react.test:8000/api/events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: draftEvent.title,
-          description: draftEvent.description,
-          latitude: draftEvent.lat,
-          longitude: draftEvent.lng,
-          start_time: draftEvent.when,
-          end_time: draftEvent.when, // ou autre logique      
-          training_rank: "B",        // idem
-        }),
-      });
-
-      const newEvent = await res.json();
-      setEvents((prev) => [...prev, newEvent]);
-      setDraftEvent(null);
-      setCreateMode(True);
-    } catch (err) {
-      console.error("Erreur création event:", err);
-    }
-  }
-  // Fonction pour créer un évènement
+// Fonction pour créer un évènement
 async function saveEvent() {
   try {
     const csrfToken = getCsrfToken();
@@ -275,6 +210,13 @@ async function deleteEvent(eventId) {
   } catch (err) {
     console.error("Erreur suppression event:", err);
   }
+  if (res.status === 422 && errData.details) {
+    const allErrors = Object.values(errData.details)
+      .flat()
+      .join("\n");
+    alert("Erreurs de validation :\n" + allErrors);
+  }
+
 }
 const filteredEvents = useMemo(
   () => events.filter((ev) => selectedRanks.has(ev.training_rank)),

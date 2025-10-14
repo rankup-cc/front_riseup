@@ -2,17 +2,22 @@ import React, { useState, useEffect } from "react";
 import { useAuthStore } from "../../hooks/AuthStore";
 
 const ActivityFeed = () => {
-  const [activeTab, setActiveTab] = useState("activities");
-  const [events, setEvents] = useState([]);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [showMineOnly, setShowMineOnly] = useState(false);
-  const { user } = useAuthStore();
+const [activeTab, setActiveTab] = useState("activities");
+const [events, setEvents] = useState([]);
+const [showCreateForm, setShowCreateForm] = useState(false);
+const [showMineOnly, setShowMineOnly] = useState(false);
+const { user } = useAuthStore();
+const [addressQuery, setAddressQuery] = useState(""); // texte tapé
+const [addressResults, setAddressResults] = useState([]); // suggestions de l’API
+const [isCreating, setIsCreating] = useState(false);
+
 
   const [newEvent, setNewEvent] = useState({
     title: "",
     description: "",
     latitude: 48.8566,
     longitude: 2.3522,
+    location: "",
     start_time: "",
     end_time: "",
     training_rank: "C",
@@ -24,12 +29,14 @@ const ActivityFeed = () => {
   const RANKS = ["S", "A", "B", "C", "D", "E", "F"];
 
   // --- Charger les événements depuis Laravel ---
-  useEffect(() => {
-    fetch("http://backend.react.test:8000/api/events", { credentials: "include" })
-      .then((res) => res.json())
-      .then(setEvents)
-      .catch((err) => console.error("Erreur fetch events:", err));
-  }, []);
+useEffect(() => {
+  fetch("http://backend.react.test:8000/api/events", {
+    credentials: "include",
+  })
+    .then((res) => res.json())
+    .then(setEvents)
+    .catch((err) => console.error("Erreur fetch events:", err));
+}, []);
 
   // --- Récupérer le token CSRF ---
   function getCsrfToken() {
@@ -41,40 +48,88 @@ const ActivityFeed = () => {
   }
 
   // --- Créer un nouvel événement ---
-  async function createEvent() {
-    try {
-      const csrfToken = getCsrfToken();
-      const res = await fetch("http://backend.react.test:8000/api/events", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          "X-XSRF-TOKEN": csrfToken,
-        },
-        body: JSON.stringify(newEvent),
-      });
+ // --- Créer un nouvel événement ---
+async function createEvent() {
+  if (isCreating) return; // ✅ empêche le double clic
+    setIsCreating(true);
+  try {
+    const csrfToken = getCsrfToken();
 
-      const data = await res.json();
-      setEvents((prev) => [...prev, data]);
-      setShowCreateForm(false);
+    // ✅ Construire le bon payload à envoyer au backend
 
-      // reset du formulaire
-      setNewEvent({
-        title: "",
-        description: "",
-        latitude: 48.8566,
-        longitude: 2.3522,
-        start_time: "",
-        end_time: "",
-        training_rank: "C",
-        kilometre: "",
-        allure_visee: "",
-        type: "",
-      });
-    } catch (err) {
-      console.error("Erreur création event:", err);
+    const newEventData = {
+    title: newEvent.title,
+    description: newEvent.description,
+    address: newEvent.location, // l’adresse choisie
+    start_time: newEvent.start_time,
+    end_time: newEvent.end_time,
+    training_rank: newEvent.training_rank,
+    kilometre: newEvent.kilometre,
+    allure_visee: newEvent.allure_visee,
+    type: newEvent.type,
+    };
+
+    const res = await fetch("http://backend.react.test:8000/api/events", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        "X-XSRF-TOKEN": csrfToken,
+      },
+      body: JSON.stringify(newEventData), // 👈 on envoie bien l'adresse
+    });
+
+    if (!res.ok) {
+      const errData = await res.json();
+      console.error("Erreur backend:", errData);
+
+      if (res.status === 422 && errData.details) {
+        // Erreur de validation Laravel
+        const firstError = Object.values(errData.details)[0][0];
+        alert("Erreur de validation : " + firstError);
+      } else {
+        alert(errData.error || "Erreur lors de la création de l'événement");
+      }
+      return;
     }
+
+    const data = await res.json();
+    setEvents((prev) => [...prev, data]);
+    setShowCreateForm(false);
+    // Force un petit rechargement global des events après 1 seconde
+    setTimeout(() => {
+      fetch("http://backend.react.test:8000/api/events", { credentials: "include" })
+        .then((res) => res.json())
+        .then(setEvents)
+        .catch((err) => console.error("Erreur refresh events:", err));
+    }, 1000);
+
+    // ✅ reset du formulaire
+    setNewEvent({
+      title: "",
+      description: "",
+      latitude: 48.8566,
+      longitude: 2.3522,
+      location: "",
+      start_time: "",
+      end_time: "",
+      training_rank: "C",
+      kilometre: "",
+      allure_visee: "",
+      type: "",
+    });
+    window.dispatchEvent(new Event("eventsUpdated"));
+    setAddressQuery("");
+    setAddressResults([]);
+
+  } catch (err) {
+    console.error("Erreur création event:", err);
+    alert("Erreur côté client : impossible de créer l'événement");
+  }finally {
+    setIsCreating(false); // ✅ Réactive le bouton
   }
+}
+
 
   // --- Rejoindre / quitter un événement ---
   async function joinEvent(eventId) {
@@ -160,6 +215,28 @@ const ActivityFeed = () => {
   const displayedEvents = showMineOnly
     ? events.filter((ev) => ev.created_by === user?.id)
     : events;
+
+// 🔍 Fonction de recherche d’adresses via Nominatim
+async function searchAddress(query) {
+  if (query.length < 3) return setAddressResults([]); // éviter les requêtes inutiles
+
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`
+    );
+    const data = await res.json();
+
+    setAddressResults(
+      data.map((item) => ({
+        display_name: item.display_name,
+        lat: parseFloat(item.lat),
+        lon: parseFloat(item.lon),
+      }))
+    );
+  } catch (err) {
+    console.error("Erreur recherche adresse:", err);
+  }
+}
 
   return (
     <div
@@ -301,6 +378,70 @@ const ActivityFeed = () => {
                   borderRadius: 8,
                 }}
               />
+            {/* Champ d’adresse avec suggestions */}
+            <div style={{ position: "relative", marginBottom: 10 }}>
+            <input
+                type="text"
+                placeholder="Adresse (ex: 12 rue de Paris, Lyon)"
+                value={addressQuery}
+                onChange={(e) => {
+                setAddressQuery(e.target.value);
+                searchAddress(e.target.value);
+                }}
+                style={{
+                display: "block",
+                width: "100%",
+                padding: 8,
+                borderRadius: 8,
+                border: "1px solid #14919B",
+                }}
+            />
+
+            {/* Menu déroulant de suggestions */}
+            {addressResults.length > 0 && (
+                <ul
+                style={{
+                    position: "absolute",
+                    top: "100%",
+                    left: 0,
+                    right: 0,
+                    background: "#FFFFFF",
+                    border: "1px solid #14919B",
+                    borderRadius: "8px",
+                    listStyle: "none",
+                    margin: 0,
+                    padding: 0,
+                    maxHeight: "150px",
+                    overflowY: "auto",
+                    zIndex: 10,
+                }}
+                >
+                {addressResults.map((addr, index) => (
+                    <li
+                    key={index}
+                    onClick={() => {
+                        setNewEvent({
+                        ...newEvent,
+                        location: addr.display_name,
+                        latitude: addr.lat,
+                        longitude: addr.lon,
+                        });
+                        setAddressQuery(addr.display_name);
+                        setAddressResults([]); // fermer le menu
+                    }}
+                    style={{
+                        padding: "8px",
+                        cursor: "pointer",
+                        borderBottom: "1px solid #EEE",
+                    }}
+                    >
+                    {addr.display_name}
+                    </li>
+                ))}
+                </ul>
+            )}
+            </div>
+
 
               <input
                 type="datetime-local"
@@ -367,17 +508,20 @@ const ActivityFeed = () => {
 
               <button
                 onClick={createEvent}
+                disabled={isCreating}
                 style={{
-                  background: "#45DFB1",
+                  background: isCreating ? "#9CA3AF" : "#45DFB1",
                   color: "#213A57",
                   border: "none",
                   borderRadius: "8px",
                   padding: "8px 16px",
                   fontWeight: "600",
+                  cursor: isCreating ? "not-allowed" : "pointer",
                 }}
               >
-                Créer
+                {isCreating ? "Création..." : "Créer"}
               </button>
+
             </div>
           )}
 
@@ -419,12 +563,11 @@ const ActivityFeed = () => {
 
                   <p>{event.description}</p>
                   <div style={{ color: "#14919B", fontSize: "14px" }}>
-                    📏 {event.kilometre ?? "-"} km — ⏱ {event.allure_visee ?? "-"}
-                    <br />
-                    🏋️ Type : {event.type ?? "-"}
-                    <br />
+                    📍 {event.address ?? "Adresse inconnue"}<br />
+                    📏 {event.kilometre ?? "-"} km — ⏱ {event.allure_visee ?? "-"} <br />
+                    🏋️ Type : {event.type ?? "-"} <br />
                     👥 Participants : {event.participants_count ?? 0}
-                  </div>
+                    </div>
 
                   <div style={{ marginTop: 10, display: "flex", gap: 10 }}>
                     <button
