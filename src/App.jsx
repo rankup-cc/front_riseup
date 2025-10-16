@@ -28,13 +28,14 @@ function AppLayout() {
     const isFetchingUser = useAuthStore((state) => state.isFetchingUser);
     const user = useAuthStore((state) => state.user);
     useEffect(() => {
-    fetch("http://backend.react.test:8000/sanctum/csrf-cookie", {
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/sanctum/csrf-cookie`, {
         method: "GET",
         credentials: "include",
     })
         .then(() => console.log("CSRF cookie initialisé ✅"))
         .catch(err => console.error("Erreur init CSRF:", err));
     }, []);
+
 
     useEffect(() => {
         fetchUser();
