@@ -22,13 +22,16 @@ import Trouver from "@/pages/trouver.jsx";
 import ClassementPage from "@/pages/classement.jsx";
 import AbonnesPage from './pages/abonnes.jsx';
 import EventChatPage from "./pages/EventChatPage";
+import Profile from './pages/profile.jsx';
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://backend.react.test:8000";
 
 function AppLayout() {
     const fetchUser = useAuthStore((state) => state.fetchUser);
     const isFetchingUser = useAuthStore((state) => state.isFetchingUser);
     const user = useAuthStore((state) => state.user);
     useEffect(() => {
-    fetch(`${import.meta.env.VITE_BACKEND_URL}/sanctum/csrf-cookie`, {
+    fetch(`${BACKEND_URL}/sanctum/csrf-cookie`, {
         method: "GET",
         credentials: "include",
     })
@@ -92,6 +95,7 @@ export default function App() {
                             { path: "classement", element: <ClassementPage />     },
                             { path: "abonnes", element: <AbonnesPage />     },
                             { path: "events/chat", element: <EventChatPage /> },
+                            { path: "profile", element: <Profile />     }
                         ],
                     },
                 { path: "auth/verify-email", element: <VerifyEmail /> },

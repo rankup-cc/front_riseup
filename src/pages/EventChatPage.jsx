@@ -1,13 +1,40 @@
 import React, { useEffect, useState } from "react";
+import { useAuthStore } from "../hooks/AuthStore";
 
 export default function EventChatPage() {
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
-  const currentUserId = JSON.parse(localStorage.getItem("user"))?.id;
+
+  const { user, fetchUser, isFetchingUser } = useAuthStore();
+
+  // Charger le user au montage
+  useEffect(() => {
+    if (!user) {
+      fetchUser();
+    }
+  }, [user, fetchUser]);
+
+  const currentUserId = user?.id;
+  console.log("🧑 ID utilisateur connecté :", currentUserId);
+
+  // Charger les événements
+  useEffect(() => {
+    fetch("http://backend.react.test:8000/api/user/events", { credentials: "include" })
+      .then((res) => {
+        if (!res.ok) throw new Error("Non autorisé");
+        return res.json();
+      })
+      .then(setEvents)
+      .catch((err) => console.error("Erreur fetch user events:", err));
+  }, []);
+
+
+  // Charger les messages de l’événement sélectionné
   useEffect(() => {
     if (!selectedEvent) return;
+
     const fetchMessages = () => {
       fetch(`http://backend.react.test:8000/api/events/${selectedEvent.id}/messages`, {
         credentials: "include",
@@ -22,78 +49,71 @@ export default function EventChatPage() {
     return () => clearInterval(interval);
   }, [selectedEvent]);
 
-
-
-  useEffect(() => {
-    fetch("http://backend.react.test:8000/api/events", { credentials: "include" })
-      .then((res) => res.json())
-      .then(setEvents)
-      .catch((err) => console.error("Erreur fetch events:", err));
-  }, []);
-
-  useEffect(() => {
-    if (!selectedEvent) return;
-
-    fetch(`http://backend.react.test:8000/api/events/${selectedEvent.id}/messages`, {
-      credentials: "include",
-    })
-      .then((res) => res.json())
-      .then(setMessages)
-      .catch((err) => console.error("Erreur fetch messages:", err));
-  }, [selectedEvent]);
-
   async function sendMessage() {
-  if (!newMessage.trim() || !selectedEvent) return;
+    if (!newMessage.trim() || !selectedEvent) return;
 
-  try {
-    // 1️⃣ D’abord, on initialise le cookie CSRF de Laravel
-    await fetch("http://backend.react.test:8000/sanctum/csrf-cookie", {
-      credentials: "include",
-    });
-
-    // 2️⃣ Ensuite, on récupère le token du cookie
-    const csrfToken = decodeURIComponent(
-      document.cookie
-        .split("; ")
-        .find((row) => row.startsWith("XSRF-TOKEN="))
-        ?.split("=")[1] || ""
-    );
-
-
-    // 3️⃣ Enfin, on envoie le message
-    const res = await fetch(
-      `http://backend.react.test:8000/api/events/${selectedEvent.id}/messages`,
-      {
-        method: "POST",
+    try {
+      await fetch("http://backend.react.test:8000/sanctum/csrf-cookie", {
         credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          "X-XSRF-TOKEN": csrfToken,
-        },
-        body: JSON.stringify({ message: newMessage }),
+      });
+
+      const csrfToken = decodeURIComponent(
+        document.cookie
+          .split("; ")
+          .find((row) => row.startsWith("XSRF-TOKEN="))
+          ?.split("=")[1] || ""
+      );
+
+      const res = await fetch(
+        `http://backend.react.test:8000/api/events/${selectedEvent.id}/messages`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            "X-XSRF-TOKEN": csrfToken,
+          },
+          body: JSON.stringify({ message: newMessage }),
+        }
+      );
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error("Erreur backend:", res.status, errText);
+        alert("Erreur d’envoi du message (" + res.status + ")");
+        return;
       }
-    );
 
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error("Erreur backend:", res.status, errText);
-      alert("Erreur d’envoi du message (" + res.status + ")");
-      return;
+      const msg = await res.json();
+      setMessages((prev) => [...prev, msg]);
+      setNewMessage("");
+    } catch (err) {
+      console.error("Erreur JS:", err);
+      alert("Impossible d’envoyer le message. Vérifie ta connexion ou le backend.");
     }
-
-    const msg = await res.json();
-    setMessages((prev) => [...prev, msg]);
-    setNewMessage("");
-  } catch (err) {
-    console.error("Erreur JS:", err);
-    alert("Impossible d’envoyer le message. Vérifie ta connexion ou le backend.");
   }
-}
 
+  // Si le user est encore en cours de chargement
+  if (isFetchingUser) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "90vh" }}>
+        <p>Chargement de votre profil...</p>
+      </div>
+    );
+  }
+
+  // Si pas connecté
+  if (!user) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "90vh", color: "#9CA3AF" }}>
+        ⚠️ Vous devez être connecté pour accéder à la discussion.
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "flex", height: "90vh", background: "#F3F4F6", borderRadius: 16, overflow: "hidden" }}>
-      {/* --- Liste des événements (gauche) --- */}
+      {/* Liste des événements */}
       <div
         style={{
           width: "30%",
@@ -127,7 +147,7 @@ export default function EventChatPage() {
         </div>
       </div>
 
-      {/* --- Discussion (droite) --- */}
+      {/* Discussion */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#FFFFFF" }}>
         {!selectedEvent ? (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#9CA3AF" }}>
@@ -135,7 +155,6 @@ export default function EventChatPage() {
           </div>
         ) : (
           <>
-            {/* Header */}
             <div
               style={{
                 padding: "16px 20px",
@@ -148,33 +167,68 @@ export default function EventChatPage() {
               {selectedEvent.title}
             </div>
 
-            {/* Messages */}
             <div style={{ flex: 1, padding: 16, overflowY: "auto", background: "#F9FAFB" }}>
-              {messages.map((m) => (
-                <div
-                  key={m.id}
-                  style={{
-                    marginBottom: 10,
-                    display: "flex",
-                    justifyContent: m.isMine ? "flex-end" : "flex-start",
-                  }}
-                >
+              {messages.map((m) => {
+                const isMine = m.user?.id === currentUserId;
+                return (
                   <div
+                    key={m.id}
                     style={{
-                      background: m.isMine ? "#45DFB1" : "#E5E7EB",
-                      color: m.isMine ? "#213A57" : "#111827",
-                      padding: "10px 14px",
-                      borderRadius: 12,
-                      maxWidth: "70%",
+                      marginBottom: 12,
+                      display: "flex",
+                      flexDirection: isMine ? "row-reverse" : "row",
+                      alignItems: "flex-start",
+                      gap: 8,
                     }}
                   >
-                    {m.message}
+                    {!isMine && (
+                      <img
+                        src={
+                          m.user?.profile_photo_url ||
+                          `https://ui-avatars.com/api/?name=${encodeURIComponent(m.user?.name || "U")}`
+                        }
+                        alt={m.user?.name}
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: "50%",
+                          objectFit: "cover",
+                        }}
+                      />
+                    )}
+
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: isMine ? "flex-end" : "flex-start",
+                        maxWidth: "70%",
+                      }}
+                    >
+                      {!isMine && (
+                        <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 2 }}>
+                          {m.user?.name || "Utilisateur"}
+                        </div>
+                      )}
+                      <div
+                        style={{
+                          background: isMine ? "#45DFB1" : "#E5E7EB",
+                          color: isMine ? "#213A57" : "#111827",
+                          padding: "10px 14px",
+                          borderRadius: 16,
+                          borderTopRightRadius: isMine ? 0 : 16,
+                          borderTopLeftRadius: isMine ? 16 : 0,
+                          wordBreak: "break-word",
+                        }}
+                      >
+                        {m.message}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
-            {/* Zone de saisie */}
             <div style={{ padding: 12, borderTop: "1px solid #E5E7EB", display: "flex", gap: 8 }}>
               <input
                 type="text"
