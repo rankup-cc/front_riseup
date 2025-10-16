@@ -22,7 +22,7 @@ const navLinks = [
     { href: "/dashboard", label: "Suivi personnel" },
     { href: "/trouver", label: "Trouver un partenaire" },
     { href: "/classement", label: "Classements" },
-    { href: "/abonnes", label: "Vos abonnées/evenements" },
+    { href: "/events/chat", label: "Vos discussions" },
 ];
 
 export default function Navbar() {

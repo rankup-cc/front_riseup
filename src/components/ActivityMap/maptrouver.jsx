@@ -2,11 +2,11 @@ import { MapContainer, TileLayer, CircleMarker, Popup, useMapEvents } from "reac
 import { useEffect, useMemo, useState } from "react";
 import { useAuthStore } from "../../hooks/AuthStore";
 
-
 const RANKS = ["S", "A", "B", "C", "D", "E", "F"];
+
 const rankColor = (r) =>
   ({
-    S: "#ffd700", // or
+    S: "#ffd700",
     A: "#45DFB1",
     B: "#14919B",
     C: "#4A9EFF",
@@ -25,18 +25,25 @@ function ClickToCreate({ enabled, onClick }) {
   return null;
 }
 
-
 export default function MapTrouver({
   initialCenter = [48.8566, 2.3522],
-  users: usersProp = [],   // ← défaut conseillé
-})  {
+  users: usersProp = [],
+}) {
   const { user } = useAuthStore();
+
+  // 🧭 États principaux
   const [userPos, setUserPos] = useState(initialCenter);
   const [users, setUsers] = useState(usersProp || []);
   const [selectedRanks, setSelectedRanks] = useState(new Set(RANKS));
   const [hourStart, setHourStart] = useState(0);
   const [hourEnd, setHourEnd] = useState(23);
 
+  // 🎯 Filtres pour les événements
+  const [searchTitle, setSearchTitle] = useState("");
+  const [filterAllure, setFilterAllure] = useState("");
+  const [filterType, setFilterType] = useState("");
+
+  // 📍 Gestion création d’événements
   const [createMode, setCreateMode] = useState(false);
   const [draftEvent, setDraftEvent] = useState(null);
   const [events, setEvents] = useState([]);
@@ -97,16 +104,25 @@ function getCsrfToken() {
     });
   }
 
-  function handleCreateEvent(latlng) {
-    setDraftEvent({
-      lat: latlng.lat,
-      lng: latlng.lng,
-      title: "",
-      when: "",
-      rank: "S",
-      description: "",
-    });
+function handleCreateEvent(latlng) {
+  const map = window.L?.mapInstance; // récupère la carte globale si tu l’as
+  if (map) {
+    map.panTo([latlng.lat - 0.002, latlng.lng]); // 👈 décalage léger vers le bas
   }
+
+  setDraftEvent({
+    lat: latlng.lat,
+    lng: latlng.lng,
+    title: "",
+    when: "",
+    rank: "C",
+    description: "",
+    kilometre: "",
+    allure_visee: "",
+    type: "",
+  });
+}
+
 
 // Fonction pour créer un évènement
 async function saveEvent() {
@@ -115,9 +131,9 @@ async function saveEvent() {
     const res = await fetch("http://backend.react.test:8000/api/events", {
       method: "POST",
       headers: {
-          "Content-Type": "application/json",
-          "X-XSRF-TOKEN": csrfToken, // ✅ Ajout ici
-        },
+        "Content-Type": "application/json",
+        "X-XSRF-TOKEN": csrfToken,
+      },
       credentials: "include",
       body: JSON.stringify({
         title: draftEvent.title,
@@ -127,6 +143,9 @@ async function saveEvent() {
         start_time: draftEvent.when,
         end_time: draftEvent.when,
         training_rank: draftEvent.rank,
+        kilometre: draftEvent.kilometre,
+        allure_visee: draftEvent.allure_visee,
+        type: draftEvent.type,
       }),
     });
 
@@ -134,10 +153,12 @@ async function saveEvent() {
     setEvents((prev) => [...prev, newEvent]);
     setDraftEvent(null);
     setCreateMode(false);
+    window.dispatchEvent(new Event("eventsUpdated")); // 🔄 actualise ActivityFeed
   } catch (err) {
     console.error("Erreur création event:", err);
   }
 }
+
 
 // Fonction pour rejoindre un évènement
 async function joinEvent(eventId) {
@@ -218,10 +239,22 @@ async function deleteEvent(eventId) {
   }
 
 }
-const filteredEvents = useMemo(
-  () => events.filter((ev) => selectedRanks.has(ev.training_rank)),
-  [events, selectedRanks]
-);
+const filteredEvents = useMemo(() => {
+  return events.filter((ev) => {
+    const matchRank = selectedRanks.has(ev.training_rank);
+    const matchTitle =
+      searchTitle.trim() === "" ||
+      ev.title?.toLowerCase().includes(searchTitle.toLowerCase());
+    const matchAllure =
+      filterAllure.trim() === "" ||
+      ev.allure_visee?.toLowerCase().includes(filterAllure.toLowerCase());
+    const matchType =
+      filterType.trim() === "" ||
+      ev.type?.toLowerCase().includes(filterType.toLowerCase());
+
+    return matchRank && matchTitle && matchAllure && matchType;
+  });
+}, [events, selectedRanks, searchTitle, filterAllure, filterType]);
 
 
   return (
@@ -295,9 +328,90 @@ const filteredEvents = useMemo(
           </button>
         </div>
       </div>
+      {/* Filtres de recherche pour les événements */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 10,
+          marginTop: 12,
+          marginBottom: 10, // 👈 ajoute un espace sous les filtres
+        }}
+      >
+
+        <input
+          type="text"
+          placeholder="Rechercher un titre"
+          value={searchTitle}
+          onChange={(e) => setSearchTitle(e.target.value)}
+          style={{
+            flex: 1,
+            minWidth: 180,
+            padding: 8,
+            borderRadius: 8,
+            border: "1px solid #14919B",
+            background: "#173047",
+            color: "#E0F2F1",
+          }}
+        />
+
+        <input
+          type="text"
+          placeholder="Allure visée (ex: 5:00/km)"
+          value={filterAllure}
+          onChange={(e) => setFilterAllure(e.target.value)}
+          style={{
+            flex: 1,
+            minWidth: 160,
+            padding: 8,
+            borderRadius: 8,
+            border: "1px solid #14919B",
+            background: "#173047",
+            color: "#E0F2F1",
+          }}
+        />
+
+        <select
+          value={filterType}
+          onChange={(e) => setFilterType(e.target.value)}
+          style={{
+            flex: 1,
+            minWidth: 160,
+            padding: 8,
+            borderRadius: 8,
+            border: "1px solid #14919B",
+            background: "#173047",
+            color: "#E0F2F1",
+          }}
+        >
+          <option value="">Type de séance</option>
+          <option value="Endurance">Endurance</option>
+          <option value="Fractionné">Fractionné</option>
+          <option value="Sortie longue">Sortie longue</option>
+          <option value="Récupération">Récupération</option>
+        </select>
+
+        <button
+          onClick={() => {
+            setSearchTitle("");
+            setFilterAllure("");
+            setFilterType("");
+          }}
+          style={{
+            padding: "6px 10px",
+            borderRadius: 8,
+            border: "1px solid #45DFB1",
+            background: "transparent",
+            color: "#45DFB1",
+            fontWeight: 600,
+          }}
+        >
+          Réinitialiser
+        </button>
+      </div>
 
       {/* Carte */}
-      <div style={{ width: "100%", height: 420, borderRadius: 12, overflow: "hidden", border: "1px solid rgba(69,223,177,0.25)" }}>
+      <div style={{ width: "100%", height: "600px", borderRadius: 12, overflow: "hidden", border: "1px solid rgba(69,223,177,0.25)" }}>
         <MapContainer center={userPos} zoom={14} scrollWheelZoom style={{ width: "100%", height: "100%" }} preferCanvas>
           <TileLayer
             url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
@@ -471,9 +585,11 @@ const filteredEvents = useMemo(
               <Popup
                 closeOnClick={false}
                 autoClose={false}
-                autoPan={false}
-                interactive={true} // ✅ permet les clics dans le contenu
+                autoPan={true}                // ✅ active le recentrage automatique
+                autoPanPadding={[50, 100]}    // ✅ ajoute une marge (100px vers le haut)
+                interactive={true}
               >
+
                 <div style={{ minWidth: 240 }}>
                   <div style={{ fontWeight: 800, color: "#213A57", marginBottom: 8 }}>Nouvel évènement</div>
                   <div style={{ display: "grid", gap: 8 }}>
@@ -483,39 +599,66 @@ const filteredEvents = useMemo(
                       onChange={(e) => setDraftEvent({ ...draftEvent, title: e.target.value })}
                       style={{ padding: 8, borderRadius: 8, border: "1px solid #14919B" }}
                     />
+
+                    <textarea
+                      placeholder="Description (optionnel)"
+                      value={draftEvent.description}
+                      onChange={(e) => setDraftEvent({ ...draftEvent, description: e.target.value })}
+                      rows={2}
+                      style={{ padding: 8, borderRadius: 8, border: "1px solid #14919B" }}
+                    />
+
                     <input
                       type="datetime-local"
                       value={draftEvent.when}
                       onChange={(e) => setDraftEvent({ ...draftEvent, when: e.target.value })}
                       style={{ padding: 8, borderRadius: 8, border: "1px solid #14919B" }}
                     />
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <select
-                        value={draftEvent.rank}
-                        onChange={(e) => setDraftEvent({ ...draftEvent, rank: e.target.value })}
-                        style={{ padding: 8, borderRadius: 8, border: "1px solid #14919B", flex: 1 }}
-                      >
-                        {RANKS.map((r) => (
-                          <option key={r} value={r}>
-                            {r}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <textarea
-                      placeholder="Description (optionnel)"
-                      value={draftEvent.description}
-                      onChange={(e) => setDraftEvent({ ...draftEvent, description: e.target.value })}
-                      rows={3}
+
+                    <select
+                      value={draftEvent.rank}
+                      onChange={(e) => setDraftEvent({ ...draftEvent, rank: e.target.value })}
+                      style={{ padding: 8, borderRadius: 8, border: "1px solid #14919B" }}
+                    >
+                      {RANKS.map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+
+                    <input
+                      type="number"
+                      placeholder="Distance (km)"
+                      value={draftEvent.kilometre || ""}
+                      onChange={(e) => setDraftEvent({ ...draftEvent, kilometre: e.target.value })}
                       style={{ padding: 8, borderRadius: 8, border: "1px solid #14919B" }}
                     />
+
+                    <input
+                      type="text"
+                      placeholder="Allure visée (ex: 5:00/km)"
+                      value={draftEvent.allure_visee || ""}
+                      onChange={(e) => setDraftEvent({ ...draftEvent, allure_visee: e.target.value })}
+                      style={{ padding: 8, borderRadius: 8, border: "1px solid #14919B" }}
+                    />
+
+                    <select
+                      value={draftEvent.type || ""}
+                      onChange={(e) => setDraftEvent({ ...draftEvent, type: e.target.value })}
+                      style={{ padding: 8, borderRadius: 8, border: "1px solid #14919B" }}
+                    >
+                      <option value="">Type de séance</option>
+                      <option value="Endurance">Endurance</option>
+                      <option value="Fractionné">Fractionné</option>
+                      <option value="Sortie longue">Sortie longue</option>
+                      <option value="Récupération">Récupération</option>
+                    </select>
+
                     <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
                       <button
-                        type="button" // ✅ important pour éviter un submit fantôme
-                        onClick={() => {
-                          console.log("Clic bouton créer ✅");
-                          saveEvent();
-                        }}
+                        type="button"
+                        onClick={saveEvent}
                         style={{
                           flex: 1,
                           padding: "8px 10px",

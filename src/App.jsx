@@ -21,6 +21,7 @@ import Page from "@/pages/dashboard.jsx";
 import Trouver from "@/pages/trouver.jsx";
 import ClassementPage from "@/pages/classement.jsx";
 import AbonnesPage from './pages/abonnes.jsx';
+import EventChatPage from "./pages/EventChatPage";
 
 function AppLayout() {
     const fetchUser = useAuthStore((state) => state.fetchUser);
@@ -88,7 +89,8 @@ export default function App() {
                             { path: "dashboard", element: <Page /> },
                             { path: "trouver", element: <Trouver /> },
                             { path: "classement", element: <ClassementPage />     },
-                            { path: "abonnes", element: <AbonnesPage />     }
+                            { path: "abonnes", element: <AbonnesPage />     },
+                            { path: "events/chat", element: <EventChatPage /> },
                         ],
                     },
                 { path: "auth/verify-email", element: <VerifyEmail /> },

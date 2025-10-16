@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useAuthStore } from "../../hooks/AuthStore";
+import { useNavigate } from "react-router-dom";
+
 
 const ActivityFeed = () => {
+
+const navigate = useNavigate();
 const [activeTab, setActiveTab] = useState("activities");
 const [events, setEvents] = useState([]);
 const [showCreateForm, setShowCreateForm] = useState(false);
@@ -10,6 +14,11 @@ const { user } = useAuthStore();
 const [addressQuery, setAddressQuery] = useState(""); // texte tapé
 const [addressResults, setAddressResults] = useState([]); // suggestions de l’API
 const [isCreating, setIsCreating] = useState(false);
+// 🔍 Filtres
+const [searchTitle, setSearchTitle] = useState("");
+const [filterAllure, setFilterAllure] = useState("");
+const [filterType, setFilterType] = useState("");
+
 
 
   const [newEvent, setNewEvent] = useState({
@@ -211,10 +220,22 @@ async function createEvent() {
     }
   };
 
-  // --- Filtre “mes événements uniquement” ---
-  const displayedEvents = showMineOnly
-    ? events.filter((ev) => ev.created_by === user?.id)
-    : events;
+// --- Filtrage combiné ---
+const filteredEvents = events.filter((ev) => {
+  const matchesTitle = ev.title
+    ?.toLowerCase()
+    .includes(searchTitle.toLowerCase());
+  const matchesAllure = filterAllure
+    ? ev.allure_visee?.toLowerCase().includes(filterAllure.toLowerCase())
+    : true;
+  const matchesType = filterType ? ev.type === filterType : true;
+  return matchesTitle && matchesAllure && matchesType;
+});
+
+// --- Si “mes événements uniquement” est activé ---
+const displayedEvents = showMineOnly
+  ? filteredEvents.filter((ev) => ev.created_by === user?.id)
+  : filteredEvents;
 
 // 🔍 Fonction de recherche d’adresses via Nominatim
 async function searchAddress(query) {
@@ -524,6 +545,82 @@ async function searchAddress(query) {
 
             </div>
           )}
+          {/* Filtres */}
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 10,
+              marginBottom: 16,
+              background: "#E0F2F1",
+              padding: 10,
+              borderRadius: 10,
+            }}
+          >
+            <input
+              type="text"
+              placeholder="Rechercher un titre..."
+              value={searchTitle}
+              onChange={(e) => setSearchTitle(e.target.value)}
+              style={{
+                flex: 1,
+                minWidth: 180,
+                padding: 8,
+                borderRadius: 8,
+                border: "1px solid #14919B",
+              }}
+            />
+
+            <input
+              type="text"
+              placeholder="Allure visée (ex: 5:00/km)"
+              value={filterAllure}
+              onChange={(e) => setFilterAllure(e.target.value)}
+              style={{
+                flex: 1,
+                minWidth: 150,
+                padding: 8,
+                borderRadius: 8,
+                border: "1px solid #14919B",
+              }}
+            />
+
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              style={{
+                flex: 1,
+                minWidth: 150,
+                padding: 8,
+                borderRadius: 8,
+                border: "1px solid #14919B",
+              }}
+            >
+              <option value="">Tous les types</option>
+              <option value="Endurance">Endurance</option>
+              <option value="Fractionné">Fractionné</option>
+              <option value="Sortie longue">Sortie longue</option>
+              <option value="Récupération">Récupération</option>
+            </select>
+
+            <button
+              onClick={() => {
+                setSearchTitle("");
+                setFilterAllure("");
+                setFilterType("");
+              }}
+              style={{
+                background: "#45DFB1",
+                color: "#213A57",
+                border: "none",
+                borderRadius: 8,
+                padding: "8px 16px",
+                fontWeight: 600,
+              }}
+            >
+              Réinitialiser
+            </button>
+          </div>
 
           {/* Liste d'événements */}
           <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
@@ -567,6 +664,20 @@ async function searchAddress(query) {
                     📏 {event.kilometre ?? "-"} km — ⏱ {event.allure_visee ?? "-"} <br />
                     🏋️ Type : {event.type ?? "-"} <br />
                     👥 Participants : {event.participants_count ?? 0}
+                      <button
+                        onClick={() => navigate(`/events/${event.id}/chat`)}
+                        style={{
+                          background: "#173047",
+                          color: "#45DFB1",
+                          border: "none",
+                          borderRadius: "8px",
+                          padding: "6px 12px",
+                          fontWeight: "600",
+                          cursor: "pointer",
+                        }}
+                      >
+                        💬 Discussion
+                      </button>
                     </div>
 
                   <div style={{ marginTop: 10, display: "flex", gap: 10 }}>
