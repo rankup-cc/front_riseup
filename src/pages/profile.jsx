@@ -4,10 +4,10 @@ import "./dashboard.css";
 import "./profile.css";
 import { useAuthStore } from "../hooks/AuthStore.jsx";
 import RankLegend from "@/components/classement/RankLegend.jsx";
-// 👉 adapte ce chemin selon l'endroit où tu as créé le helper
-import { extApi } from "@/services/externalApi.js"; // ou "@/services/externalApi.js"
+import { extApi } from "@/services/externalApi.js"; // appel direct à l'API PHP
+import { usePaces } from "../context/PacesContext"; // garde le même chemin partout
 
-// -------------------- CONFIG API LARAVEL (local) --------------------
+/* -------------------- CONFIG API LARAVEL (local/proxy) -------------------- */
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://backend.react.test:8000";
 const API_URL = (import.meta.env.VITE_API_URL || `${BACKEND_URL}/api`).replace(/\/+$/, "");
 
@@ -19,14 +19,9 @@ function getCookie(name) {
 // fetch JSON + cookies + XSRF header (pour ton back Laravel)
 async function apiFetch(path, { method = "GET", body } = {}) {
   const url = `${API_URL}${path}`;
-  const xsrfCookie = getCookie("XSRF-TOKEN"); // posé par /sanctum/csrf-cookie
-  const headers = {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-  };
-  if (xsrfCookie) {
-    headers["X-XSRF-TOKEN"] = decodeURIComponent(xsrfCookie);
-  }
+  const xsrfCookie = getCookie("XSRF-TOKEN");
+  const headers = { "Content-Type": "application/json", Accept: "application/json" };
+  if (xsrfCookie) headers["X-XSRF-TOKEN"] = decodeURIComponent(xsrfCookie);
 
   const res = await fetch(url, {
     method,
@@ -50,39 +45,97 @@ async function apiFetch(path, { method = "GET", body } = {}) {
   return isJSON ? payload : text;
 }
 
-// -------------------- Helpers rang -> niveau -> payload --------------------
-// Fallback si l’iframe n’envoie pas un niveau numérique
+/* -------------------- Helpers rang -> niveau -> payload -------------------- */
+// Convertit une lettre (S, A+, A, A-, …) -> niveau approx
 function levelFromRankLetter(rank) {
-  const R = String(rank || "").toUpperCase();
-  // Ajuste ces valeurs si besoin
-  const map = { S: 90, A: 70, B: 55, C: 42, D: 32, E: 22 };
-  return map[R] ?? null;
+  if (!rank) return null;
+  const R = String(rank).trim().toUpperCase();
+
+  const base = { S: 90, A: 70, B: 55, C: 42, D: 32, E: 22, F: 15 };
+
+  // gère A+, A- etc.
+  const m = R.match(/^([SABCDEFX])([+-])?$/) || R.match(/^([ABCDE])\s*([+-])$/);
+  if (m) {
+    const letter = m[1];
+    const pm = m[2];
+    let val = base[letter] ?? null;
+    if (val != null && pm) val += pm === "+" ? 3 : -3;
+    return val;
+  }
+
+  const table = {
+    "A+": 73, "A-": 67,
+    "B+": 58, "B-": 52,
+    "C+": 46, "C-": 38,
+    "D+": 36, "D-": 30,
+    "E+": 26, "E-": 18,
+  };
+  if (R in table) return table[R];
+  return base[R] ?? null;
 }
 
-// Construit le body attendu par /training/paces
-function buildNvPayloadFromRanks(ranksObj) {
-  // ranksObj: { "1500m":{rank:"A", performance:"..." , niveau?: 68 }, ... }
-  const getLevel = (evKey) => {
-    const r = ranksObj?.[evKey];
-    if (!r) return null;
-    // priorité au champ numérique si dispo (niveau | level | nv)
-    const numeric = r.niveau ?? r.level ?? r.nv ?? null;
-    if (Number.isFinite(numeric)) return Number(numeric);
-    // sinon fallback depuis la lettre de rang
-    return levelFromRankLetter(r.rank);
+// Extraction très tolérante des niveaux depuis l’objet/array renvoyé par l’iframe
+function buildNvPayloadFromRanks(ranks) {
+  // 1) Normalise en liste d'entrées {key, data}
+  const entries = [];
+  if (Array.isArray(ranks)) {
+    for (const it of ranks) {
+      const k = (it?.key || it?.name || it?.epreuve || it?.event || "").toString();
+      entries.push({ key: k, data: it });
+    }
+  } else if (ranks && typeof ranks === "object") {
+    for (const k of Object.keys(ranks)) entries.push({ key: k, data: ranks[k] });
+  }
+
+  // 2) util: trouve l’entrée correspondant à une épreuve
+  const findEntry = (aliases) => {
+    const al = aliases.map((s) => s.toLowerCase());
+    return entries.find(({ key }) => {
+      const kk = (key || "").toLowerCase();
+      return al.some((a) => kk.includes(a));
+    })?.data;
   };
 
-  return {
-    nv_1500: getLevel("1500m"),
-    nv_3000: getLevel("3000m"),
-    nv_5000: getLevel("5000m"),
-    nv_10000: getLevel("10000m"),
-    nv_semi: getLevel("semi"),
-    nv_marathon: getLevel("marathon"),
+  // 3) util: extrait un niveau numérique OU une lettre
+  const extractLevel = (obj) => {
+    if (!obj || typeof obj !== "object") return null;
+
+    // cherche champ numérique
+    const numKeys = ["niveau", "level", "nv", "niv", "value", "score"];
+    for (const k of numKeys) {
+      if (k in obj) {
+        const v = obj[k];
+        const n = typeof v === "string" ? Number(v.replace(",", ".")) : Number(v);
+        if (Number.isFinite(n)) return n;
+      }
+    }
+    // sinon, cherche lettre
+    const letterKeys = ["rank", "rang", "grade", "letter", "classe"];
+    for (const k of letterKeys) {
+      if (k in obj) {
+        const n = levelFromRankLetter(obj[k]);
+        if (Number.isFinite(n)) return n;
+      }
+    }
+    return null;
   };
+
+  // 4) map d’aliases par épreuve
+  const NV = {};
+  NV.nv_1500     = extractLevel(findEntry(["1500", "1500m", "m1500"]));
+  NV.nv_3000     = extractLevel(findEntry(["3000", "3000m", "m3000"]));
+  NV.nv_5000     = extractLevel(findEntry(["5000", "5000m", "5k", "5 km"]));
+  NV.nv_10000    = extractLevel(findEntry(["10000", "10k", "10 km", "10000m"]));
+  NV.nv_semi     = extractLevel(findEntry(["semi", "21", "21k", "half"]));
+  NV.nv_marathon = extractLevel(findEntry(["marathon", "42", "42k"]));
+
+  // 5) nettoie
+  Object.keys(NV).forEach((k) => (NV[k] == null || Number.isNaN(NV[k])) && delete NV[k]);
+
+  return NV;
 }
 
-// -------------------- Composant --------------------
+/* ------------------------------ Composant page ------------------------------ */
 const ProfilePage = () => {
   const { user } = useAuthStore();
   const userId = user?.id || 1;
@@ -93,6 +146,7 @@ const ProfilePage = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [savingInfo, setSavingInfo] = useState(false);
   const [savingRanks, setSavingRanks] = useState(false);
+  const [computingPaces, setComputingPaces] = useState(false);
 
   const [userInfo, setUserInfo] = useState({
     firstName: user?.firstName || user?.first_name || "Jimmy",
@@ -104,7 +158,7 @@ const ProfilePage = () => {
     eventParticipation: 12,
   });
 
-  // Rangs affichés dans l’onglet "Infos personnelles"
+  // Rangs affichés (onglet "Infos personnelles")
   const [userRanks, setUserRanks] = useState({
     "1500m": { rank: "A", performance: "00:03:45" },
     "3000m": { rank: "A", performance: "00:08:15" },
@@ -114,8 +168,8 @@ const ProfilePage = () => {
     marathon: { rank: "C", performance: "02:15:30" },
   });
 
-  // Allures calculées par l’API externe
-  const [paces, setPaces] = useState(null);
+  // Contexte global pour partager les allures (avec dashboard.jsx)
+  const { paces: pacesCtx, setPaces } = usePaces();
 
   // ======= Zone RANGS (iframe)
   const iframeRef = useRef(null);
@@ -159,35 +213,12 @@ const ProfilePage = () => {
         if (iframeRef.current) iframeRef.current.style.height = `${h}px`;
       }
 
-      // Résultats de rangs
+      // Résultats de rangs -> on garde le brouillon
       if (data.type === "ranks:result" && data.ranks && typeof data.ranks === "object") {
         setRanksDraft(data.ranks);
         setHasRanksDraft(true);
-
-        // → Construire le body attendu par /training/paces
-        const body = buildNvPayloadFromRanks(data.ranks);
-        // nettoie les null
-        Object.keys(body).forEach((k) => {
-          if (body[k] == null) delete body[k];
-        });
-
-        if (Object.keys(body).length) {
-          extApi("/training/paces", { method: "POST", body })
-            .then((json) => {
-              if (json?.success && json?.paces) {
-                setPaces(json.paces); // ef / seuil / marathon
-              } else {
-                console.error("Réponse inattendue /training/paces", json);
-                setPaces(null);
-              }
-            })
-            .catch((err) => {
-              console.error("Erreur /training/paces", err);
-              setPaces(null);
-            });
-        } else {
-          setPaces(null);
-        }
+        console.log("[ranksDraft reçu depuis l'iframe]", data.ranks);
+        // ⚠️ on NE calcule plus automatiquement les allures ici
       }
     }
     window.addEventListener("message", onMsg);
@@ -249,6 +280,41 @@ const ProfilePage = () => {
       alert("Impossible d’enregistrer les rangs.");
     } finally {
       setSavingRanks(false);
+    }
+  };
+
+  // -------- CALCULER LES ALLURES (depuis les NIVEAUX) -> PacesContext
+  const computeTrainingPacesFromDraft = async () => {
+    if (!ranksDraft) {
+      alert("Commence par calculer tes rangs.");
+      return;
+    }
+    const body = buildNvPayloadFromRanks(ranksDraft); // privilégie niveau numérique, sinon lettre convertie
+    if (!Object.keys(body).length) {
+      alert("Je n’ai pas détecté de niveaux dans tes résultats. Regarde la console (F12) pour la forme exacte envoyée par l’iframe.");
+      console.warn("[compute paces] ranksDraft sans niveaux détectés :", ranksDraft);
+      return;
+    }
+
+    try {
+      setComputingPaces(true);
+      const json = await extApi("/training/paces", { method: "POST", body });
+      if (!json?.success || !json?.paces) throw new Error("Réponse inattendue.");
+
+      setPaces({
+        at: Date.now(),
+        input: body,
+        paces: json.paces,
+        intervals_5k: json.intervals_5k,
+        intervals_1500: json.intervals_1500,
+      });
+
+      alert("Allures calculées ✅ — rendez-vous dans Suivi personnel !");
+    } catch (e) {
+      console.error(e);
+      alert("Échec du calcul des allures.");
+    } finally {
+      setComputingPaces(false);
     }
   };
 
@@ -341,7 +407,7 @@ const ProfilePage = () => {
               </div>
             </div>
 
-            {/* Stats */}
+                        {/* Stats */}
             <div className="stats-box">
               <h3>Statistiques</h3>
               <div className="stats-grid">
@@ -355,15 +421,148 @@ const ProfilePage = () => {
                 </div>
               </div>
             </div>
+
+            {/* Aperçu des dernières allures + INTERVALLES si dispo */}
+            {pacesCtx?.paces && (
+              <div className="info-card" style={{ marginTop: 16 }}>
+                <h3 style={{ color: "#45DFB1" }}>Dernières allures calculées</h3>
+
+                {/* EF / Seuil / Marathon */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))",
+                    gap: 12,
+                    marginBottom: 12,
+                  }}
+                >
+                  {["ef", "seuil", "marathon"].map((k) => {
+                    const sec = pacesCtx?.paces?.[k]?.seconds ?? 0;
+                    const m = Math.floor(sec / 60);
+                    const s = sec % 60;
+                    return (
+                      <div
+                        key={k}
+                        style={{
+                          background: "#E0F2F1",
+                          borderRadius: 12,
+                          padding: 12,
+                          textAlign: "center",
+                          border: "1px solid rgba(69,223,177,.25)",
+                        }}
+                      >
+                        <div style={{ color: "#14919B", fontWeight: 700, marginBottom: 6 }}>
+                          {k.toUpperCase()}
+                        </div>
+                        <div style={{ color: "#213A57", fontSize: 18, fontWeight: "bold" }}>
+                          {m}:{String(s).padStart(2, "0")}/km
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Intervalles 5K */}
+                {pacesCtx?.intervals_5k && (
+                  <>
+                    <div style={{ color: "#14919B", fontWeight: 700, margin: "8px 0 6px" }}>
+                      Intervalles – allure 5K{" "}
+                      {pacesCtx.intervals_5k.source ? `(source: ${pacesCtx.intervals_5k.source})` : ""}
+                    </div>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))",
+                        gap: 10,
+                        marginBottom: 12,
+                      }}
+                    >
+                      {[
+                        ["I400", pacesCtx.intervals_5k.i400],
+                        ["I1000", pacesCtx.intervals_5k.i1000],
+                        ["I1200", pacesCtx.intervals_5k.i1200],
+                        ["I1600", pacesCtx.intervals_5k.i1600],
+                      ].map(([lab, val]) => {
+                        const sec = val?.seconds ?? 0;
+                        const m = Math.floor(sec / 60);
+                        const s = sec % 60;
+                        return (
+                          <div
+                            key={lab}
+                            style={{
+                              background: "#F1F7F6",
+                              borderRadius: 12,
+                              padding: 10,
+                              textAlign: "center",
+                              border: "1px solid rgba(69,223,177,.25)",
+                            }}
+                          >
+                            <div style={{ color: "#14919B", fontWeight: 700, marginBottom: 6 }}>{lab}</div>
+                            <div style={{ color: "#213A57", fontSize: 18, fontWeight: "bold" }}>
+                              {m}:{String(s).padStart(2, "0")}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+
+                {/* Intervalles 1500 */}
+                {pacesCtx?.intervals_1500 && (
+                  <>
+                    <div style={{ color: "#14919B", fontWeight: 700, margin: "8px 0 6px" }}>
+                      Intervalles – allure 1500{" "}
+                      {pacesCtx.intervals_1500.source ? `(source: ${pacesCtx.intervals_1500.source})` : ""}
+                    </div>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))",
+                        gap: 10,
+                      }}
+                    >
+                      {[
+                        ["R200", pacesCtx.intervals_1500.r200],
+                        ["R300", pacesCtx.intervals_1500.r300],
+                        ["R400", pacesCtx.intervals_1500.r400],
+                        ["R600", pacesCtx.intervals_1500.r600],
+                        ["R800", pacesCtx.intervals_1500.r800],
+                      ].map(([lab, val]) => {
+                        const sec = val?.seconds ?? 0;
+                        const m = Math.floor(sec / 60);
+                        const s = sec % 60;
+                        return (
+                          <div
+                            key={lab}
+                            style={{
+                              background: "#F1F7F6",
+                              borderRadius: 12,
+                              padding: 10,
+                              textAlign: "center",
+                              border: "1px solid rgba(69,223,177,.25)",
+                            }}
+                          >
+                            <div style={{ color: "#14919B", fontWeight: 700, marginBottom: 6 }}>{lab}</div>
+                            <div style={{ color: "#213A57", fontSize: 18, fontWeight: "bold" }}>
+                              {m}:{String(s).padStart(2, "0")}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         ) : (
-          // ----- Onglet Rangs = dashboard.jsx intégré -----
+          /* ----- Onglet Rangs (iframe + actions) ----- */
           <div className="dashboard-container">
             <section className="encadré-bienvenue">
               <h1>Bienvenue sur ton espace d’entraînement 👋</h1>
               <p>
-                Renseigne tes performances pour connaître ton rang, puis génère tes allures
-                et ton plan personnalisé.
+                Renseigne tes performances pour connaître ton rang, puis génère tes allures et ton plan personnalisé.
               </p>
             </section>
 
@@ -387,59 +586,34 @@ const ProfilePage = () => {
                   />
                 </div>
 
-                {/* Affichage allures si dispo */}
-                {paces && (
-                  <div className="info-card" style={{ marginTop: 16 }}>
-                    <h3 style={{ color: "#45DFB1" }}>Allures calculées</h3>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))",
-                        gap: 12,
-                      }}
-                    >
-                      {["ef", "seuil", "marathon"].map((k) => (
-                        <div
-                          key={k}
-                          style={{
-                            background: "#E0F2F1",
-                            borderRadius: 12,
-                            padding: 12,
-                            textAlign: "center",
-                          }}
-                        >
-                          <div style={{ color: "#14919B", fontWeight: 700, marginBottom: 6 }}>
-                            {k.toUpperCase()}
-                          </div>
-                          <div style={{ color: "#213A57", fontSize: 18, fontWeight: "bold" }}>
-                            {(() => {
-                              const sec = paces?.[k]?.seconds ?? 0;
-                              const m = Math.floor(sec / 60),
-                                s = sec % 60;
-                              return `${m}:${String(s).padStart(2, "0")}/km`;
-                            })()}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* barre d’enregistrement des rangs */}
+                {/* barre d’actions */}
                 <div className="savebar">
                   <div className={`dot ${hasRanksDraft ? "ok" : ""}`} />
                   <span className="savebar-text">
                     {hasRanksDraft
-                      ? "Résultats prêts à être enregistrés."
-                      : "Calcule tes rangs pour activer l’enregistrement."}
+                      ? "Résultats prêts."
+                      : "Calcule tes rangs pour activer les actions."}
                   </span>
-                  <button
-                    className="savebar-btn"
-                    disabled={!hasRanksDraft || savingRanks}
-                    onClick={saveRanksToBackend}
-                  >
-                    {savingRanks ? "⏳ Enregistrement..." : "💾 Enregistrer mes rangs"}
-                  </button>
+
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      className="savebar-btn"
+                      disabled={!hasRanksDraft || savingRanks}
+                      onClick={saveRanksToBackend}
+                      title="Enregistre tes rangs dans ton profil"
+                    >
+                      {savingRanks ? "⏳ Enregistrement..." : "💾 Enregistrer mes rangs"}
+                    </button>
+
+                    <button
+                      className="savebar-btn"
+                      disabled={!hasRanksDraft || computingPaces}
+                      onClick={computeTrainingPacesFromDraft}
+                      title="Calcule et stocke tes allures d’entraînement"
+                    >
+                      {computingPaces ? "⏳ Calcul..." : "⚡ Calculer mes allures"}
+                    </button>
+                  </div>
                 </div>
               </main>
             </div>
@@ -451,3 +625,4 @@ const ProfilePage = () => {
 };
 
 export default ProfilePage;
+

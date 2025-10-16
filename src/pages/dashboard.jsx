@@ -1,71 +1,10 @@
 // src/pages/dashboard.jsx
-import React, { useEffect, useState } from "react";
+import React, { useMemo, useState } from "react";
 import "./dashboard.css";
 import { useAuthStore } from "@/hooks/AuthStore.jsx";
+import { usePaces } from "@/context/PacesContext";
 
-/* ------------------------ Config API Laravel (profil) ------------------------ */
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://backend.react.test:8000";
-const API_URL = (import.meta.env.VITE_API_URL || `${BACKEND_URL}/api`).replace(/\/+$/, "");
-
-function getCookie(name) {
-  return document.cookie.split("; ").find((row) => row.startsWith(name + "="))?.split("=")[1];
-}
-
-async function apiFetch(path, { method = "GET", body } = {}) {
-  const url = `${API_URL}${path}`;
-  const xsrfCookie = getCookie("XSRF-TOKEN");
-
-  const headers = { "Content-Type": "application/json", Accept: "application/json" };
-  if (xsrfCookie) headers["X-XSRF-TOKEN"] = decodeURIComponent(xsrfCookie);
-
-  const res = await fetch(url, {
-    method,
-    credentials: "include",
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-
-  const text = await res.text().catch(() => "");
-  const isJSON = (res.headers.get("content-type") || "").includes("application/json");
-  const payload = isJSON && text ? JSON.parse(text) : text;
-
-  if (!res.ok) {
-    const msg =
-      (payload && payload.message) ||
-      (payload && payload.error) ||
-      `${res.status} ${res.statusText}`;
-    throw new Error(msg);
-  }
-  return isJSON ? payload : text;
-}
-
-/* ------------------- Helpers rang -> niveau -> payload nv_* ------------------ */
-function levelFromRankLetter(rank) {
-  const R = String(rank || "").toUpperCase();
-  const map = { S: 90, A: 70, B: 55, C: 42, D: 32, E: 22 };
-  return map[R] ?? null;
-}
-
-function buildNvPayloadFromRanks(ranksObj) {
-  const getLevel = (evKey) => {
-    const r = ranksObj?.[evKey];
-    if (!r) return null;
-    const numeric = r.niveau ?? r.level ?? r.nv ?? null;
-    if (Number.isFinite(numeric)) return Number(numeric);
-    return levelFromRankLetter(r.rank);
-  };
-
-  return {
-    nv_1500: getLevel("1500m"),
-    nv_3000: getLevel("3000m"),
-    nv_5000: getLevel("5000m"),
-    nv_10000: getLevel("10000m"),
-    nv_semi: getLevel("semi"),
-    nv_marathon: getLevel("marathon"),
-  };
-}
-
-/* ------------------------------ UI mini-helpers ------------------------------ */
+// --------- helpers ----------
 const mmss = (sec) => {
   const s = Math.max(0, Math.round(sec || 0));
   const m = Math.floor(s / 60);
@@ -73,257 +12,302 @@ const mmss = (sec) => {
   return `${m}:${ss.toString().padStart(2, "0")}`;
 };
 
-/* ----------------------------- Plan 2 semaines UI ---------------------------- */
-function TwoWeekPlan({ paces }) {
-  // paces: { ef:{seconds}, seuil:{seconds}, marathon:{seconds} }
-  const ef = paces?.ef?.seconds || 6 * 60;
+const addDays = (date, d) => {
+  const x = new Date(date);
+  x.setDate(x.getDate() + d);
+  return x;
+};
+
+const formatDay = (d) =>
+  d.toLocaleDateString(undefined, { weekday: "short", day: "2-digit", month: "2-digit" });
+
+const dayNames = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+
+// --------- générateur de semaine ----------
+function buildWeekPlan(paces) {
+  const ef = paces?.ef?.seconds || 6 * 60 + 0;
   const t = paces?.seuil?.seconds || 4 * 60 + 20;
   const mp = paces?.marathon?.seconds || 4 * 60 + 50;
 
-  const W = () => ({
-    ef: `EF ${mmss(ef)}/km`,
-    t: `Seuil ${mmss(t)}/km`,
-    mp: `Allure marathon ${mmss(mp)}/km`,
-    r: `Repos / mobilité`,
-    i: `Intervalles (5 × 1000 m @ ${mmss(Math.max(0, t - 15))}/km, r: 2')`,
-    l: `Longue sortie (70–90') @ ${mmss(ef)}/km`,
-  });
+  const i400 =
+    paces?.i5?.i400?.seconds ??
+    paces?.intervals_5k?.i400?.seconds ??
+    Math.max(t - 20, 3 * 60);
+  const i1000 =
+    paces?.i5?.i1000?.seconds ??
+    paces?.intervals_5k?.i1000?.seconds ??
+    Math.max(t - 15, 3 * 60 + 10);
+  const i1200 =
+    paces?.i5?.i1200?.seconds ??
+    paces?.intervals_5k?.i1200?.seconds ??
+    Math.max(t - 10, 3 * 60 + 20);
+  const i1600 =
+    paces?.i5?.i1600?.seconds ??
+    paces?.intervals_5k?.i1600?.seconds ??
+    Math.max(t - 5, 3 * 60 + 30);
 
-  const plan = [
-    [W().ef, W().i, W().r, W().t, W().ef, W().l, W().r],
-    [W().ef, W().i, W().r, W().t, W().ef, W().l, W().r],
+  const r200 =
+    paces?.r15?.r200?.seconds ?? paces?.intervals_1500?.r200?.seconds ?? 45;
+  const r300 =
+    paces?.r15?.r300?.seconds ?? paces?.intervals_1500?.r300?.seconds ?? 70;
+  const r400 =
+    paces?.r15?.r400?.seconds ?? paces?.intervals_1500?.r400?.seconds ?? 95;
+  const r600 =
+    paces?.r15?.r600?.seconds ?? paces?.intervals_1500?.r600?.seconds ?? 160;
+  const r800 =
+    paces?.r15?.r800?.seconds ?? paces?.intervals_1500?.r800?.seconds ?? 220;
+
+  return [
+    {
+      title: "Footing facile",
+      desc: `Footing 30–45' à ${mmss(ef)}/km. Conseils : respiration nasale, aisance.`,
+    },
+    {
+      title: "Intervalles 5k",
+      desc: `5 × 1000 m @ ${mmss(i1000)}/km — récup 2'. Échauff. 15', retour au calme 10'.`,
+    },
+    {
+      title: "Repos / Mobilité",
+      desc: "Jour léger : mobilité, gainage 10', sommeil + hydratation.",
+    },
+    {
+      title: "Seuil",
+      desc: `2 × 12' @ ${mmss(t)}/km — récup 3'. Échauff. 15', RAC 10'.`,
+    },
+    {
+      title: "EF + éducatifs",
+      desc: `40' à ${mmss(ef)}/km. 6×(80 m éducatifs/retour marche).`,
+    },
+    {
+      title: "Sortie longue",
+      desc: `75–90' dont 30' @ allure marathon ${mmss(mp)}/km. Nutrition à tester.`,
+    },
+    {
+      title: "Vitesse 1500",
+      desc: `Série mixte : 6×(400 m @ ${mmss(r400)}) r=1' + 4×(200 m @ ${mmss(r200)}) r=1'.`,
+    },
   ];
-  const dayNames = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
-
-  return (
-    <div
-      style={{
-        background: "#213A57",
-        border: "1px solid rgba(69,223,177,.2)",
-        borderRadius: 16,
-        padding: 20,
-        boxShadow: "0 5px 15px rgba(0,0,0,.3)",
-        color: "#E0F2F1",
-      }}
-    >
-      <h3 style={{ margin: 0, marginBottom: 14, fontSize: 20, fontWeight: 700, textAlign: "center" }}>
-        Plan d’entraînement – 2 semaines
-      </h3>
-
-      {plan.map((week, wi) => (
-        <div key={wi} style={{ marginBottom: 16 }}>
-          <div style={{ color: "#8ADCC6", fontWeight: 600, margin: "6px 0 8px" }}>Semaine {wi + 1}</div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(7, minmax(160px,1fr))",
-              gap: 10,
-              overflowX: "auto",
-            }}
-          >
-            {week.map((w, di) => (
-              <div
-                key={di}
-                style={{
-                  background: "#F1F7F6",
-                  color: "#213A57",
-                  borderRadius: 12,
-                  padding: "10px 12px",
-                  border: "1px solid rgba(69,223,177,.25)",
-                  minHeight: 72,
-                }}
-              >
-                <div style={{ fontSize: 12, color: "#14919B", fontWeight: 700, marginBottom: 6 }}>
-                  {dayNames[di]}
-                </div>
-                <div style={{ fontSize: 14, lineHeight: "18px" }}>{w}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-
-      <div style={{ marginTop: 8, fontSize: 12, color: "#8ADCC6", textAlign: "center" }}>
-        Conseil : ajuste les volumes à ton expérience. Garde 1–2 jours très faciles par semaine.
-      </div>
-    </div>
-  );
 }
 
-/* --------------------------------- Page ------------------------------------- */
-export default function Page() {
+// 7 dates d'une semaine en fonction de l'offset
+function getWeekDates(weekOffset = 0) {
+  const now = new Date();
+  const day = (now.getDay() + 6) % 7; // 0 = lundi
+  const monday = addDays(new Date(now.getFullYear(), now.getMonth(), now.getDate()), -day + 7 * weekOffset);
+  return Array.from({ length: 7 }, (_, i) => addDays(monday, i));
+}
+
+// --------- Composant principal ----------
+export default function DashboardPage() {
   const { user } = useAuthStore();
-  const [activeTab, setActiveTab] = useState("paces"); // "paces" | "plan"
-  const [loading, setLoading] = useState(true);
-  const [paces, setPaces] = useState(null);
-  const [error, setError] = useState("");
+  const { paces } = usePaces(); // contexte rempli depuis profile.jsx
+  const [weekOffset, setWeekOffset] = useState(0); // 0..3
+  const [activeTab, setActiveTab] = useState("train"); // "train" | "strength"
 
-  useEffect(() => {
-    let mounted = true;
-
-    async function load() {
-      try {
-        setLoading(true);
-        setError("");
-
-        // 1) Récupère les rangs sauvegardés côté Laravel
-        const prof = await apiFetch("/profile"); // => { user, profile, ranks }
-        const ranksObj = prof?.ranks || {};
-        if (!Object.keys(ranksObj).length) {
-          setError("Aucun rang enregistré. Va dans Profil > Calcul de rangs pour les calculer puis enregistre-les.");
-          setPaces(null);
-          return;
-        }
-
-        // 2) Construit le payload de niveaux nv_* depuis les rangs
-        const body = buildNvPayloadFromRanks(ranksObj);
-        Object.keys(body).forEach((k) => body[k] == null && delete body[k]);
-
-        if (!Object.keys(body).length) {
-          setError("Impossible de déduire un niveau depuis tes rangs. Recalcule tes rangs dans Profil.");
-          setPaces(null);
-          return;
-        }
-
-        // 3) Appelle l’API EXTERNE via le PROXY Laravel (pas de CORS)
-        const resp = await apiFetch("/ext/training/paces", { method: "POST", body });
-        if (resp?.success && resp?.paces) {
-          if (mounted) setPaces(resp.paces); // { ef, seuil, marathon }
-        } else {
-          throw new Error("Réponse inattendue de l’API d’allures.");
-        }
-      } catch (e) {
-        console.error(e);
-        if (mounted) {
-          setError(e.message || "Erreur lors du chargement des allures.");
-          setPaces(null);
-        }
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
-
-    load();
-    return () => {
-      mounted = false;
+  const allures = useMemo(() => {
+    if (!paces) return null;
+    return {
+      ef: paces?.paces?.ef,
+      seuil: paces?.paces?.seuil,
+      marathon: paces?.paces?.marathon,
+      i5: paces?.intervals_5k,
+      r15: paces?.intervals_1500,
     };
-  }, [user?.id]);
+  }, [paces]);
+
+  const currentWeekDays = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
+  const oneWeekPlan = useMemo(() => buildWeekPlan(allures), [allures]);
+  const noPaces = !allures;
+
+  const prevDisabled = weekOffset <= 0;
+  const nextDisabled = weekOffset >= 3; // 4 semaines max
 
   return (
-    <div className="dashboard-container" style={{ maxWidth: 1200, margin: "0 auto", padding: 16 }}>
-      {/* Tabs header */}
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          margin: "8px 0 20px",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
+    <div className="dashboard-container">
+      {/* Onglets */}
+      <div className="nav-tabs center">
         <button
-          onClick={() => setActiveTab("paces")}
-          style={{
-            border: "1px solid rgba(69,223,177,.35)",
-            background: activeTab === "paces" ? "#14919B" : "#213A57",
-            color: "#E0F2F1",
-            padding: "10px 14px",
-            borderRadius: 12,
-            cursor: "pointer",
-            fontWeight: 700,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-          }}
+          onClick={() => setActiveTab("train")}
+          className={`nav-tab ${activeTab === "train" ? "active" : ""}`}
+          type="button"
         >
-          🏁 Allures d’entraînement
+          📅 Entraînement
         </button>
         <button
-          onClick={() => setActiveTab("plan")}
-          style={{
-            border: "1px solid rgba(69,223,177,.35)",
-            background: activeTab === "plan" ? "#14919B" : "#213A57",
-            color: "#E0F2F1",
-            padding: "10px 14px",
-            borderRadius: 12,
-            cursor: "pointer",
-            fontWeight: 700,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-          }}
+          onClick={() => setActiveTab("strength")}
+          className={`nav-tab ${activeTab === "strength" ? "active" : ""}`}
+          type="button"
         >
-          📅 Plan 2 semaines
+          💪 Renforcement
         </button>
       </div>
 
-      {/* Content */}
-      {loading ? (
-        <div style={{ color: "#213A57", background: "#E0F2F1", padding: 16, borderRadius: 12 }}>
-          Chargement…
+      {/* Alerte si pas d’allures */}
+      {noPaces && activeTab === "train" && (
+        <div className="cta-empty">
+          Aucune allure disponible. Va sur <a href="/profile">Profil</a> → “Calcul de rangs”,
+          clique “⚡ Calculer mes allures”, puis reviens ici.
         </div>
-      ) : error ? (
-        <div
-          style={{
-            color: "#E53E3E",
-            background: "#FFF5F5",
-            padding: 16,
-            borderRadius: 12,
-            border: "1px solid #FED7D7",
-          }}
-        >
-          {error} <a href="/profile" style={{ color: "#14919B", fontWeight: 700 }}>Ouvrir le profil</a>
-        </div>
-      ) : activeTab === "paces" ? (
-        <div
-          style={{
-            background: "#213A57",
-            border: "1px solid rgba(69,223,177,.2)",
-            borderRadius: 20,
-            padding: 20,
-            boxShadow: "0 5px 15px rgba(0,0,0,.3)",
-          }}
-        >
-          <h3 style={{ color: "#E0F2F1", fontSize: 22, margin: 0, marginBottom: 16, fontWeight: 700 }}>
-            Allures d’entraînement
-          </h3>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: 16,
-            }}
-          >
-            {["ef", "seuil", "marathon"].map((k) => {
-              const sec = paces?.[k]?.seconds ?? 0;
-              return (
-                <div
-                  key={k}
-                  style={{
-                    background: "#F1F7F6",
-                    color: "#213A57",
-                    borderRadius: 12,
-                    padding: 16,
-                    border: "1px solid rgba(69,223,177,.25)",
-                    textAlign: "center",
-                  }}
-                >
-                  <div style={{ color: "#14919B", fontWeight: 700, marginBottom: 6 }}>
-                    {k.toUpperCase()}
-                  </div>
-                  <div style={{ fontSize: 24, fontWeight: "bold" }}>{mmss(sec)}/km</div>
-                  {paces?.[k]?.source && (
-                    <div style={{ fontSize: 12, color: "#14919B", marginTop: 6 }}>
-                      source: {paces[k].source}
-                    </div>
-                  )}
+      )}
+
+      {/* Onglet ENTRAÎNEMENT = Semaine + Allures dans le même onglet */}
+      {!noPaces && activeTab === "train" && (
+        <>
+          {/* PLAN HEBDO */}
+          <section className="week-card" style={{ marginBottom: 16 }}>
+            <div className="week-nav">
+              <button
+                type="button"
+                className="week-btn"
+                onClick={() => !prevDisabled && setWeekOffset((w) => Math.max(0, w - 1))}
+                disabled={prevDisabled}
+                title="Semaine précédente"
+              >
+                ←
+              </button>
+
+              <div className="week-header">
+                <div className="week-title">
+                  Semaine du {currentWeekDays[0].toLocaleDateString()} au {currentWeekDays[6].toLocaleDateString()}
                 </div>
-              );
-            })}
+                <div className="week-subtitle">
+                  Ajuste les volumes à ton expérience. 1–2 jours très faciles / semaine.
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="week-btn"
+                onClick={() => !nextDisabled && setWeekOffset((w) => Math.min(3, w + 1))}
+                disabled={nextDisabled}
+                title="Semaine suivante"
+              >
+                →
+              </button>
+            </div>
+
+            <div className="week-grid">
+              {oneWeekPlan.map((w, i) => (
+                <article className="day-card" key={i}>
+                  <div className="day-head">
+                    <div className="day-date">
+                      {dayNames[i]} — {formatDay(currentWeekDays[i])}
+                    </div>
+                  </div>
+                  <h4 className="day-title">{w.title}</h4>
+                  <p className="day-desc">{w.desc}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          {/* ALLURES & INTERVALLES */}
+          <section className="paces-root">
+            {/* EF / Seuil / Marathon */}
+            <div className="card">
+              <h3 className="card-title">Allures distances longues</h3>
+              <div className="paces-grid">
+                {["ef", "seuil", "marathon"].map((k) => {
+                  const sec = allures?.[k]?.seconds ?? 0;
+                  return (
+                    <div className="pace-item" key={k}>
+                      <div className="pace-label">{k.toUpperCase()}</div>
+                      <div className="pace-value">{mmss(sec)}/km</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Intervalles 5k */}
+            {allures?.i5 && (
+              <div className="card">
+                <h3 className="card-title">Temps de passage – allure 5K</h3>
+                <div className="intervals-grid">
+                  {[
+                    ["400 m", allures.i5.i400],
+                    ["1000 m", allures.i5.i1000],
+                    ["1200 m", allures.i5.i1200],
+                    ["1600 m", allures.i5.i1600],
+                  ].map(([lab, val]) => (
+                    <div className="pace-item" key={lab}>
+                      <div className="pace-label">{lab}</div>
+                      <div className="pace-value">{mmss(val?.seconds ?? 0)}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Intervalles 1500 */}
+            {allures?.r15 && (
+              <div className="card">
+                <h3 className="card-title">Intervalles – allure 1500</h3>
+                <div className="intervals-grid">
+                  {[
+                    ["200 m", allures.r15.r200],
+                    ["300 m", allures.r15.r300],
+                    ["400 m", allures.r15.r400],
+                    ["600 m", allures.r15.r600],
+                    ["800 m", allures.r15.r800],
+                  ].map(([lab, val]) => (
+                    <div className="pace-item" key={lab}>
+                      <div className="pace-label">{lab}</div>
+                      <div className="pace-value">{mmss(val?.seconds ?? 0)}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+        </>
+      )}
+
+      {/* Onglet RENFORCEMENT = Étirements + Muscu */}
+      {activeTab === "strength" && (
+        <section className="paces-root">
+          {/* Étirements */}
+          <div className="card">
+            <h3 className="card-title">Étirements (10–15')</h3>
+            <div className="paces-grid">
+              {[
+                ["Mollets contre mur", "2×30–45\" par jambe"],
+                ["Ischios (PNF léger)", "2×30–45\""],
+                ["Quadriceps debout", "2×30–45\" par jambe"],
+                ["Fessiers (pigeon)", "2×30–45\" par jambe"],
+                ["Hanche/Fléchisseurs", "2×30–45\" par jambe"],
+                ["Dos/Grand dorsal", "2×30–45\""],
+              ].map(([name, vol]) => (
+                <div className="pace-item" key={name}>
+                  <div className="pace-label">{name}</div>
+                  <div className="pace-value" style={{ fontSize: 18 }}>{vol}</div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      ) : (
-        <TwoWeekPlan paces={paces} />
+
+          {/* Musculation / Prépa Physique */}
+          <div className="card">
+            <h3 className="card-title">Musculation – gainage & force (20–30')</h3>
+            <div className="intervals-grid">
+              {[
+                ["Gainage planche", "3×30–45\" (r:30\")"],
+                ["Gainage latéral", "3×30–45\"/côté (r:30\")"],
+                ["Hip thrust", "3×10–12 (r:60–90\")"],
+                ["Squat gobelet", "3×8–10 (r:90\")"],
+                ["Fentes marchées", "2×12/ jambe (r:60\")"],
+                ["Mollets debout", "3×12–15 (r:45\")"],
+                ["Oiseaux élastique", "2×15–20 (r:45\")"],
+                ["Rotation buste (core)", "2×12–15/ côté (r:45\")"],
+              ].map(([name, vol]) => (
+                <div className="pace-item" key={name}>
+                  <div className="pace-label">{name}</div>
+                  <div className="pace-value" style={{ fontSize: 18 }}>{vol}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
       )}
     </div>
   );

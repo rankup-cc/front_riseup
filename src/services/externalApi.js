@@ -1,17 +1,26 @@
-const EXT_API_BASE = import.meta.env.VITE_RISEUP_API_BASE
-  || "https://backend.riseupmotion.com/public/api";
-const EXT_API_KEY = import.meta.env.VITE_RISEUP_API_KEY || "";
+// Base directe vers l’API PHP
+export const API_BASE =
+  import.meta.env.VITE_API_BASE || 'https://backend.riseupmotion.com/api';
 
-export async function extApi(path, { method = "GET", body } = {}) {
-  const url = `${EXT_API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
-  const res = await fetch(url, {
+// Appel générique (facile à debugger)
+export async function extApi(path, { method = 'GET', body } = {}) {
+  const res = await fetch(`${API_BASE}${path}`, {
     method,
-    headers: {
-      "Content-Type": "application/json",
-      "X-API-Key": EXT_API_KEY,          // <<< important
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: body ? JSON.stringify(body) : undefined,
+    credentials: 'include',
   });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+  const txt = await res.text().catch(() => '');
+  const isJSON = (res.headers.get('content-type') || '').includes('application/json');
+  const payload = isJSON && txt ? JSON.parse(txt) : txt;
+  if (!res.ok) {
+    const msg = (payload && payload.error) || `${res.status} ${res.statusText}`;
+    throw new Error(msg);
+  }
+  return payload;
+}
+
+// Spécifique allures
+export async function postTrainingPaces(payload) {
+  return extApi('/training/paces', { method: 'POST', body: payload });
 }
