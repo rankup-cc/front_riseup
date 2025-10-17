@@ -5,40 +5,45 @@ import { useParams } from "react-router-dom";
 export default function EventChatPage() {
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [showEventInfo, setShowEventInfo] = useState(false);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
-  const { id } = useParams(); // 👈 récupère l'id de l'URL
+  const { id } = useParams();
 
   const { user, fetchUser, isFetchingUser } = useAuthStore();
 
-  // Charger le user au montage
   useEffect(() => {
-    if (!user) {
-      fetchUser();
-    }
+    if (!user) fetchUser();
   }, [user, fetchUser]);
 
   const currentUserId = user?.id;
 
-  // Charger les événements où le user est inscrit
   useEffect(() => {
-    fetch("http://backend.react.test:8000/api/user/events", { credentials: "include" })
-      .then((res) => {
-        if (!res.ok) throw new Error("Non autorisé");
-        return res.json();
-      })
-      .then((data) => {
-        setEvents(data);
-        // 👇 Si on a un id dans l’URL, on sélectionne directement le bon event
-        const eventFromUrl = data.find((ev) => ev.id === parseInt(id));
-        if (eventFromUrl) {
-          setSelectedEvent(eventFromUrl);
-        }
-      })
-      .catch((err) => console.error("Erreur fetch user events:", err));
-  }, [id]);
+  fetch("http://backend.react.test:8000/api/user/events", { credentials: "include" })
+    .then((res) => {
+      if (!res.ok) throw new Error("Non autorisé");
+      return res.json();
+    })
+    .then((data) => {
+      setEvents(data);
 
-  // Charger les messages de l’événement sélectionné
+      // 👇 Si on a un id dans l’URL, on sélectionne le bon event
+      const eventFromUrl = data.find((ev) => ev.id === parseInt(id));
+
+      if (eventFromUrl) {
+        setSelectedEvent(eventFromUrl);
+      } 
+      // 👇 Sinon, on redirige vers le premier event existant
+      else if (!id && data.length > 0) {
+        const firstEvent = data[0];
+        window.history.replaceState({}, "", `/events/chat/${firstEvent.id}`);
+        setSelectedEvent(firstEvent);
+      }
+    })
+    .catch((err) => console.error("Erreur fetch user events:", err));
+}, [id]);
+
+
   useEffect(() => {
     if (!selectedEvent) return;
 
@@ -51,7 +56,7 @@ export default function EventChatPage() {
         .catch((err) => console.error("Erreur fetch messages:", err));
     };
 
-    fetchMessages(); // premier chargement
+    fetchMessages();
     const interval = setInterval(fetchMessages, 5000);
     return () => clearInterval(interval);
   }, [selectedEvent]);
@@ -60,16 +65,17 @@ export default function EventChatPage() {
     if (!newMessage.trim() || !selectedEvent) return;
 
     try {
-      await fetch("http://backend.react.test:8000/sanctum/csrf-cookie", {
-        credentials: "include",
-      });
-
-      const csrfToken = decodeURIComponent(
-        document.cookie
-          .split("; ")
-          .find((row) => row.startsWith("XSRF-TOKEN="))
-          ?.split("=")[1] || ""
-      );
+      await fetch("http://backend.react.test:8000/sanctum/csrf-cookie", { credentials: "include" });
+     let csrfToken = "";
+      try {
+        const cookie = document.cookie || "";
+        const tokenPart = cookie.split("; ").find((row) => row.startsWith("XSRF-TOKEN="));
+        if (tokenPart) {
+          csrfToken = decodeURIComponent(tokenPart.split("=")[1]);
+        }
+    } catch (e) {
+      console.warn("⚠️ Impossible de lire le cookie XSRF-TOKEN :", e);
+    }
 
       const res = await fetch(
         `http://backend.react.test:8000/api/events/${selectedEvent.id}/messages`,
@@ -100,7 +106,6 @@ export default function EventChatPage() {
     }
   }
 
-  // État de chargement utilisateur
   if (isFetchingUser) {
     return (
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "90vh" }}>
@@ -168,9 +173,45 @@ export default function EventChatPage() {
                 background: "#45DFB1",
                 color: "#213A57",
                 fontWeight: 700,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
               }}
             >
-              {selectedEvent.title}
+              <span>{selectedEvent.title}</span>
+
+              <button
+                onClick={() => setShowEventInfo(true)}
+                style={{
+                  background: "#45DFB1",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: 34,
+                  height: 34,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.1)")}
+                onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="#213A57"
+                  style={{ width: 18, height: 18 }}
+                >
+                  <circle cx="12" cy="12" r="10" stroke="#213A57" strokeWidth="2" />
+                  <line x1="12" y1="8" x2="12" y2="8" stroke="#213A57" strokeWidth="2" />
+                  <line x1="12" y1="10" x2="12" y2="16" stroke="#213A57" strokeWidth="2" />
+                </svg>
+              </button>
+
             </div>
 
             <div style={{ flex: 1, padding: 16, overflowY: "auto", background: "#F9FAFB" }}>
@@ -202,7 +243,6 @@ export default function EventChatPage() {
                         }}
                       />
                     )}
-
                     <div
                       style={{
                         display: "flex",
@@ -268,6 +308,112 @@ export default function EventChatPage() {
           </>
         )}
       </div>
+
+      {/* ✅ MODALE D’INFORMATION (placée à la bonne position) */}
+      {showEventInfo && selectedEvent && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 999,
+          }}
+          onClick={() => setShowEventInfo(false)}
+        >
+          <div
+            style={{
+              background: "#FFFFFF",
+              borderRadius: 12,
+              padding: 24,
+              width: "90%",
+              maxWidth: 400,
+              color: "#213A57",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
+              position: "relative",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowEventInfo(false)}
+              style={{
+                position: "absolute",
+                top: 8,
+                right: 8,
+                border: "none",
+                background: "none",
+                fontSize: 18,
+                cursor: "pointer",
+                color: "#213A57",
+              }}
+            >
+              ✕
+            </button>
+
+            <h2 style={{ color: "#45DFB1", marginBottom: 10 }}>{selectedEvent.title}</h2>
+            <p><strong>Description :</strong> {selectedEvent.description || "Aucune description"}</p>
+            <p><strong>Type :</strong> {selectedEvent.type || "Non précisé"}</p>
+            <p><strong>Allure visée :</strong> {selectedEvent.allure_visee || "-"}</p>
+            <p><strong>Distance :</strong> {selectedEvent.kilometre ? `${selectedEvent.kilometre} km` : "-"}</p>
+            <p><strong>Rang :</strong> {selectedEvent.training_rank || "-"}</p>
+            <p><strong>Adresse :</strong> {selectedEvent.address || "Non renseignée"}</p>
+            <p><strong>Date :</strong> {selectedEvent.start_time ? new Date(selectedEvent.start_time).toLocaleString() : "Non précisée"}</p>
+            {/* ✅ Liste des participants */}
+            <div style={{ marginTop: 16 }}>
+              <strong>Participants :</strong>
+              {selectedEvent.participants && selectedEvent.participants.length > 0 ? (
+              <div
+                style={{
+                  marginTop: 8,
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 10,
+                }}
+              >
+                {selectedEvent.participants.map((p) => (
+                  <div
+                    key={p.id}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      width: 70,
+                    }}
+                  >
+                    <img
+                      src={
+                        p.profile_photo_url ||
+                        `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name || "U")}&background=45DFB1&color=213A57`
+                      }
+                      alt={p.name || "Inconnu"}
+                      style={{
+                        width: 50,
+                        height: 50,
+                        borderRadius: "50%",
+                        objectFit: "cover",
+                        marginBottom: 4,
+                      }}
+                    />
+                    <span style={{ fontSize: 12, textAlign: "center" }}>
+                      {p.name?.split(" ")[0] || "Inconnu"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ color: "#6B7280", marginTop: 4 }}>Aucun participant pour le moment</p>
+            )}
+
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }

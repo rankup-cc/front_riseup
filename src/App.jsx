@@ -95,6 +95,7 @@ export default function App() {
                             { path: "classement", element: <ClassementPage />     },
                             { path: "abonnes", element: <AbonnesPage />     },
                             { path: "events/:id/chat", element: <EventChatPage /> },
+                            { path: "events/chat", element: <EventChatPage /> },
                             { path: "profile", element: <Profile />     }
                             
                         ],
