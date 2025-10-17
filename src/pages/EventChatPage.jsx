@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useAuthStore } from "../hooks/AuthStore";
+import { useParams } from "react-router-dom";
 
 export default function EventChatPage() {
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
+  const { id } = useParams(); // 👈 récupère l'id de l'URL
 
   const { user, fetchUser, isFetchingUser } = useAuthStore();
 
@@ -17,19 +19,24 @@ export default function EventChatPage() {
   }, [user, fetchUser]);
 
   const currentUserId = user?.id;
-  console.log("🧑 ID utilisateur connecté :", currentUserId);
 
-  // Charger les événements
+  // Charger les événements où le user est inscrit
   useEffect(() => {
     fetch("http://backend.react.test:8000/api/user/events", { credentials: "include" })
       .then((res) => {
         if (!res.ok) throw new Error("Non autorisé");
         return res.json();
       })
-      .then(setEvents)
+      .then((data) => {
+        setEvents(data);
+        // 👇 Si on a un id dans l’URL, on sélectionne directement le bon event
+        const eventFromUrl = data.find((ev) => ev.id === parseInt(id));
+        if (eventFromUrl) {
+          setSelectedEvent(eventFromUrl);
+        }
+      })
       .catch((err) => console.error("Erreur fetch user events:", err));
-  }, []);
-
+  }, [id]);
 
   // Charger les messages de l’événement sélectionné
   useEffect(() => {
@@ -93,7 +100,7 @@ export default function EventChatPage() {
     }
   }
 
-  // Si le user est encore en cours de chargement
+  // État de chargement utilisateur
   if (isFetchingUser) {
     return (
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "90vh" }}>
@@ -102,7 +109,6 @@ export default function EventChatPage() {
     );
   }
 
-  // Si pas connecté
   if (!user) {
     return (
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "90vh", color: "#9CA3AF" }}>
@@ -113,7 +119,7 @@ export default function EventChatPage() {
 
   return (
     <div style={{ display: "flex", height: "90vh", background: "#F3F4F6", borderRadius: 16, overflow: "hidden" }}>
-      {/* Liste des événements */}
+      {/* --- Liste des événements (gauche) --- */}
       <div
         style={{
           width: "30%",
@@ -147,7 +153,7 @@ export default function EventChatPage() {
         </div>
       </div>
 
-      {/* Discussion */}
+      {/* --- Discussion (droite) --- */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#FFFFFF" }}>
         {!selectedEvent ? (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#9CA3AF" }}>

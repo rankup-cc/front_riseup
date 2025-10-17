@@ -624,7 +624,17 @@ async function searchAddress(query) {
 
           {/* Liste d'événements */}
           <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-            {displayedEvents.map((event) => {
+            {[...displayedEvents]
+              .sort((a, b) => {
+                // 🔹 Si "a" est rejoint et pas "b", a vient avant
+                if (a.isJoined && !b.isJoined) return -1;
+                // 🔹 Si "b" est rejoint et pas "a", b vient avant
+                if (!a.isJoined && b.isJoined) return 1;
+                // 🔹 Sinon, tri secondaire : du plus récent au plus ancien
+                return new Date(b.created_at) - new Date(a.created_at);
+              })
+              .map((event) => {
+
               const isMine = user && event.created_by === user.id;
 
               return (
@@ -664,32 +674,38 @@ async function searchAddress(query) {
                     📏 {event.kilometre ?? "-"} km — ⏱ {event.allure_visee ?? "-"} <br />
                     🏋️ Type : {event.type ?? "-"} <br />
                     👥 Participants : {event.participants_count ?? 0}
-                      <button
-                        onClick={() => navigate(`/events/${event.id}/chat`)}
-                        style={{
-                          background: "#173047",
-                          color: "#45DFB1",
-                          border: "none",
-                          borderRadius: "8px",
-                          padding: "6px 12px",
-                          fontWeight: "600",
-                          cursor: "pointer",
-                        }}
-                      >
-                        💬 Discussion
-                      </button>
+                      
+
                     </div>
 
-                  <div style={{ marginTop: 10, display: "flex", gap: 10 }}>
+                  <div style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "center" }}>
+                  {/* Bouton rejoindre / se désinscrire */}
+                  <button
+                    onClick={() =>
+                      event.isJoined
+                        ? leaveEvent(event.id)
+                        : joinEvent(event.id)
+                    }
+                    style={{
+                      background: event.isJoined ? "#14919B" : "#45DFB1",
+                      color: "#213A57",
+                      border: "none",
+                      borderRadius: "8px",
+                      padding: "8px 16px",
+                      fontWeight: "600",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {event.isJoined ? "Se désinscrire" : "Rejoindre"}
+                  </button>
+
+                  {/* Bouton discussion visible seulement si inscrit */}
+                  {event.isJoined && (
                     <button
-                      onClick={() =>
-                        event.isJoined
-                          ? leaveEvent(event.id)
-                          : joinEvent(event.id)
-                      }
+                      onClick={() => navigate(`/events/${event.id}/chat`)}
                       style={{
-                        background: event.isJoined ? "#14919B" : "#45DFB1",
-                        color: "#213A57",
+                        background: "#173047",
+                        color: "#45DFB1",
                         border: "none",
                         borderRadius: "8px",
                         padding: "8px 16px",
@@ -697,25 +713,29 @@ async function searchAddress(query) {
                         cursor: "pointer",
                       }}
                     >
-                      {event.isJoined ? "Se désinscrire" : "Rejoindre"}
+                      💬 Discussion
                     </button>
+                  )}
 
-                    {isMine && (
-                      <button
-                        onClick={() => deleteEvent(event.id)}
-                        style={{
-                          background: "#EF4444",
-                          color: "#FFF",
-                          border: "none",
-                          borderRadius: "8px",
-                          padding: "8px 16px",
-                          fontWeight: "600",
-                        }}
-                      >
-                        Supprimer
-                      </button>
-                    )}
-                  </div>
+
+                  {/* Bouton supprimer visible seulement si c’est ton événement */}
+                  {isMine && (
+                    <button
+                      onClick={() => deleteEvent(event.id)}
+                      style={{
+                        background: "#EF4444",
+                        color: "#FFF",
+                        border: "none",
+                        borderRadius: "8px",
+                        padding: "8px 16px",
+                        fontWeight: "600",
+                      }}
+                    >
+                      Supprimer
+                    </button>
+                  )}
+                </div>
+
                 </div>
               );
             })}

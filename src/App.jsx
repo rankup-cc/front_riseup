@@ -94,8 +94,9 @@ export default function App() {
                             { path: "trouver", element: <Trouver /> },
                             { path: "classement", element: <ClassementPage />     },
                             { path: "abonnes", element: <AbonnesPage />     },
-                            { path: "events/chat", element: <EventChatPage /> },
+                            { path: "events/:id/chat", element: <EventChatPage /> },
                             { path: "profile", element: <Profile />     }
+                            
                         ],
                     },
                 { path: "auth/verify-email", element: <VerifyEmail /> },
