@@ -580,7 +580,7 @@ const ProfilePage = () => {
                     ref={iframeRef}
                     src="/Ranks/calcul-rank.html"
                     title="Calcule ton rang"
-                    style={{ width: "100%", height: `${iframeH}px`, border: 0 }}
+                    style={{ width: "100%", height: `${iframeH}px`, border: 0}}
                     scrolling="no"
                     referrerPolicy="no-referrer"
                   />

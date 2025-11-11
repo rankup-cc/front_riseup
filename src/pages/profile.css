@@ -15,7 +15,8 @@
 }
 
 .encadré-bienvenue {
-  background: linear-gradient(135deg, #EA5455 #F07B3F);
+  background: linear-gradient(135deg, #14919B, #45DFB1);
+  color: #E0F2F1;
   border-radius: 40px;
   font-size: 22px;
   font-weight: 600;
@@ -227,6 +228,9 @@
 }
 .legend-card{
     margin-left: -180px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    width: 400px;
 }
 /* Savebar (onglet Rangs) */
 .savebar { margin-top: 16px; display: flex; align-items: center; gap: 12px; background: #0f2640; border: 1px solid rgba(69,223,177,.25); padding: 12px 14px; border-radius: 12px; }
