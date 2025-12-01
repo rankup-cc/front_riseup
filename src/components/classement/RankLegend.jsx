@@ -72,6 +72,7 @@ export default function RankLegend({ columns = 2 }) {
                 border: "1px solid rgba(33,58,87,0.08)",
                 borderRadius: 12,
                 padding: "12px 14px",
+                hover: { background: "rgba(0, 183, 255, 1)" },
                 minWidth: 0, // permet l’ellipsis
               }}
             >

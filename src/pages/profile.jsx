@@ -1,11 +1,12 @@
 // src/pages/profile.jsx
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import "./dashboard.css";
 import "./profile.css";
 import { useAuthStore } from "../hooks/AuthStore.jsx";
 import RankLegend from "@/components/classement/RankLegend.jsx";
 import { extApi } from "@/services/externalApi.js"; // appel direct à l'API PHP
 import { usePaces } from "../context/PacesContext"; // garde le même chemin partout
+import AthletePlanView from "@/components/profile/AthletePlanView.jsx";
 
 /* -------------------- CONFIG API LARAVEL (local/proxy) -------------------- */
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://backend.react.test:8000";
@@ -147,6 +148,8 @@ const ProfilePage = () => {
   const [savingInfo, setSavingInfo] = useState(false);
   const [savingRanks, setSavingRanks] = useState(false);
   const [computingPaces, setComputingPaces] = useState(false);
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [hasRemoteTrainingPaces, setHasRemoteTrainingPaces] = useState(false);
 
   const [userInfo, setUserInfo] = useState({
     firstName: user?.firstName || user?.first_name || "Jimmy",
@@ -194,36 +197,115 @@ const ProfilePage = () => {
         }));
         const ranksObj = data?.ranks ? { ...data.ranks } : {};
         if (Object.keys(ranksObj).length) setUserRanks(ranksObj);
+
+        const remotePaces = data?.training_paces?.paces ? data.training_paces : null;
+        setHasRemoteTrainingPaces(Boolean(remotePaces));
+
+        if (remotePaces) {
+          const remoteTs = remotePaces?.computed_at
+            ? Date.parse(remotePaces.computed_at)
+            : Date.now();
+          setPaces((prev) => {
+            if (prev?.at && remoteTs && prev.at >= remoteTs) {
+              return prev;
+            }
+            return {
+              at: remoteTs || Date.now(),
+              input: remotePaces.input ?? null,
+              paces: remotePaces.paces ?? null,
+              intervals_5k: remotePaces.intervals_5k ?? null,
+              intervals_1500: remotePaces.intervals_1500 ?? null,
+            };
+          });
+        }
       })
-      .catch((e) => console.error("load /api/profile:", e));
+      .catch((e) => console.error("load /api/profile:", e))
+      .finally(() => {
+        if (mounted) {
+          setProfileLoaded(true);
+        }
+      });
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [setPaces]);
 
-  // Messages postMessage de l’iframe (hauteur + résultats)
+  const persistTrainingPaces = useCallback(
+    async ({ input, paces, intervals_5k, intervals_1500, computed_at }) => {
+      await apiFetch("/profile/paces", {
+        method: "POST",
+        body: {
+          input,
+          paces,
+          intervals_5k,
+          intervals_1500,
+          computed_at,
+        },
+      });
+    },
+    []
+  );
+
   useEffect(() => {
-    function onMsg(e) {
-      const data = e?.data;
-      if (!data || typeof data !== "object") return;
+    if (!profileLoaded) return;
+    if (hasRemoteTrainingPaces) return;
+    if (!pacesCtx?.paces) return;
 
-      if (data.type === "ranks:height" && typeof data.height === "number") {
+    let cancelled = false;
+
+    const payload = {
+      input: pacesCtx.input ?? null,
+      paces: pacesCtx.paces,
+      intervals_5k: pacesCtx.intervals_5k ?? null,
+      intervals_1500: pacesCtx.intervals_1500 ?? null,
+      computed_at: new Date(pacesCtx.at ?? Date.now()).toISOString(),
+    };
+
+    persistTrainingPaces(payload)
+      .then(() => {
+        if (!cancelled) {
+          setHasRemoteTrainingPaces(true);
+        }
+      })
+      .catch((err) => console.error("sync training paces:", err));
+
+    return () => {
+      cancelled = true;
+    };
+  }, [profileLoaded, hasRemoteTrainingPaces, pacesCtx, persistTrainingPaces]);
+
+  // Messages postMessage de l’iframe (hauteur + résultats) sert à importer la hauteur et les rangs depuis
+  useEffect(() => {
+  function onMsg(e) {
+    const data = e?.data;
+    if (!data || typeof data !== "object") return;
+
+    // --- 1) Si l’iframe envoie une hauteur explicite ---
+    if (data.type === "ranks:height" && typeof data.height === "number") {
+      const h = Math.max(900, Math.floor(data.height) + 60); // marge visuelle
+      setIframeH(h);
+      if (iframeRef.current) iframeRef.current.style.height = `${h}px`;
+    }
+
+    // --- 2) Si l’iframe envoie les résultats de rangs ---
+    if (data.type === "ranks:result" && data.ranks && typeof data.ranks === "object") {
+      setRanksDraft(data.ranks);
+      setHasRanksDraft(true);
+      console.log("[ranksDraft reçu depuis l'iframe]", data.ranks);
+
+      // ✅ Bonus : si la hauteur est envoyée dans le même message
+      if (typeof data.height === "number") {
         const h = Math.max(900, Math.floor(data.height) + 60);
         setIframeH(h);
         if (iframeRef.current) iframeRef.current.style.height = `${h}px`;
       }
-
-      // Résultats de rangs -> on garde le brouillon
-      if (data.type === "ranks:result" && data.ranks && typeof data.ranks === "object") {
-        setRanksDraft(data.ranks);
-        setHasRanksDraft(true);
-        console.log("[ranksDraft reçu depuis l'iframe]", data.ranks);
-        // ⚠️ on NE calcule plus automatiquement les allures ici
-      }
     }
-    window.addEventListener("message", onMsg);
-    return () => window.removeEventListener("message", onMsg);
-  }, []);
+  }
+
+  window.addEventListener("message", onMsg);
+  return () => window.removeEventListener("message", onMsg);
+}, []);
+
 
   const handleInputChange = (field, value) =>
     setUserInfo((s) => ({ ...s, [field]: value }));
@@ -301,6 +383,7 @@ const ProfilePage = () => {
       const json = await extApi("/training/paces", { method: "POST", body });
       if (!json?.success || !json?.paces) throw new Error("Réponse inattendue.");
 
+      const computedAt = new Date().toISOString();
       setPaces({
         at: Date.now(),
         input: body,
@@ -308,6 +391,14 @@ const ProfilePage = () => {
         intervals_5k: json.intervals_5k,
         intervals_1500: json.intervals_1500,
       });
+      await persistTrainingPaces({
+        input: body,
+        paces: json.paces,
+        intervals_5k: json.intervals_5k,
+        intervals_1500: json.intervals_1500,
+        computed_at: computedAt,
+      });
+      setHasRemoteTrainingPaces(true);
 
       alert("Allures calculées ✅ — rendez-vous dans Suivi personnel !");
     } catch (e) {
@@ -318,12 +409,20 @@ const ProfilePage = () => {
     }
   };
 
+  const avatarInitial =
+    (userInfo.firstName?.[0] ||
+      user?.first_name?.[0] ||
+      user?.name?.[0] ||
+      "?"
+    ).toUpperCase();
+
   return (
     <div className="profile-page">
       <div className="profile-wrap">
         {/* Header */}
         <div className="profile-header">
           <h1>Mon Profil</h1>
+          <div className="profile-avatar-chip">{avatarInitial}</div>
         </div>
 
         {/* Tabs */}
@@ -425,7 +524,7 @@ const ProfilePage = () => {
             {/* Aperçu des dernières allures + INTERVALLES si dispo */}
             {pacesCtx?.paces && (
               <div className="info-card" style={{ marginTop: 16 }}>
-                <h3 style={{ color: "#45DFB1" }}>Dernières allures calculées</h3>
+                <h3 style={{ color: "#E0F2F1", fontWeight: 700, margin: "8px 0 6px" }}>Dernières allures calculées</h3>
 
                 {/* EF / Seuil / Marathon */}
                 <div
@@ -465,7 +564,7 @@ const ProfilePage = () => {
                 {/* Intervalles 5K */}
                 {pacesCtx?.intervals_5k && (
                   <>
-                    <div style={{ color: "#14919B", fontWeight: 700, margin: "8px 0 6px" }}>
+                    <div style={{ color: "#E0F2F1", fontWeight: 700, margin: "8px 0 6px" }}>
                       Intervalles – allure 5K{" "}
                       {pacesCtx.intervals_5k.source ? `(source: ${pacesCtx.intervals_5k.source})` : ""}
                     </div>
@@ -478,10 +577,10 @@ const ProfilePage = () => {
                       }}
                     >
                       {[
-                        ["I400", pacesCtx.intervals_5k.i400],
-                        ["I1000", pacesCtx.intervals_5k.i1000],
-                        ["I1200", pacesCtx.intervals_5k.i1200],
-                        ["I1600", pacesCtx.intervals_5k.i1600],
+                        ["400m", pacesCtx.intervals_5k.i400],
+                        ["1000m", pacesCtx.intervals_5k.i1000],
+                        ["1200m", pacesCtx.intervals_5k.i1200],
+                        ["1600m", pacesCtx.intervals_5k.i1600],
                       ].map(([lab, val]) => {
                         const sec = val?.seconds ?? 0;
                         const m = Math.floor(sec / 60);
@@ -511,7 +610,7 @@ const ProfilePage = () => {
                 {/* Intervalles 1500 */}
                 {pacesCtx?.intervals_1500 && (
                   <>
-                    <div style={{ color: "#14919B", fontWeight: 700, margin: "8px 0 6px" }}>
+                    <div style={{color: "#E0F2F1", fontWeight: 700, margin: "8px 0 6px" }}>
                       Intervalles – allure 1500{" "}
                       {pacesCtx.intervals_1500.source ? `(source: ${pacesCtx.intervals_1500.source})` : ""}
                     </div>
@@ -523,11 +622,11 @@ const ProfilePage = () => {
                       }}
                     >
                       {[
-                        ["R200", pacesCtx.intervals_1500.r200],
-                        ["R300", pacesCtx.intervals_1500.r300],
-                        ["R400", pacesCtx.intervals_1500.r400],
-                        ["R600", pacesCtx.intervals_1500.r600],
-                        ["R800", pacesCtx.intervals_1500.r800],
+                        ["200m", pacesCtx.intervals_1500.r200],
+                        ["300m", pacesCtx.intervals_1500.r300],
+                        ["400m", pacesCtx.intervals_1500.r400],
+                        ["600m", pacesCtx.intervals_1500.r600],
+                        ["800m", pacesCtx.intervals_1500.r800],
                       ].map(([lab, val]) => {
                         const sec = val?.seconds ?? 0;
                         const m = Math.floor(sec / 60);
@@ -556,6 +655,8 @@ const ProfilePage = () => {
               </div>
             )}
           </div>
+        ) : activeTab === "training" ? (
+          <AthletePlanView userId={user?.id} userCreatedAt={user?.created_at} />
         ) : (
           /* ----- Onglet Rangs (iframe + actions) ----- */
           <div className="dashboard-container">
@@ -572,19 +673,30 @@ const ProfilePage = () => {
               </aside>
 
               <main>
-                <div
-                  className="rank-input-card"
-                  style={{ padding: 0, borderRadius: 20, overflow: "hidden" }}
-                >
-                  <iframe
-                    ref={iframeRef}
-                    src="/Ranks/calcul-rank.html"
-                    title="Calcule ton rang"
-                    style={{ width: "100%", height: `${iframeH}px`, border: 0}}
-                    scrolling="no"
-                    referrerPolicy="no-referrer"
-                  />
-                </div>
+              <div
+                className="rank-input-card"
+                style={{
+                  padding: 0,
+                  borderRadius: 20,
+                  overflow: "hidden",
+                  maxHeight: `${iframeH}px`, // ← ici
+                  transition: "max-height 0.3s ease",
+                }}
+              >
+                <iframe
+                  ref={iframeRef}
+                  src="/Ranks/calcul-rank.html"
+                  title="Calcule ton rang"
+                  style={{
+                    width: "100%",
+                    height: `${iframeH}px`,
+                    border: 0,
+                    display: "block",
+                  }}
+                  scrolling="no"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
 
                 {/* barre d’actions */}
                 <div className="savebar">
@@ -606,12 +718,12 @@ const ProfilePage = () => {
                     </button>
 
                     <button
-                      className="savebar-btn"
+                      className="calcul-btn"
                       disabled={!hasRanksDraft || computingPaces}
                       onClick={computeTrainingPacesFromDraft}
-                      title="Calcule et stocke tes allures d’entraînement"
-                    >
-                      {computingPaces ? "⏳ Calcul..." : "⚡ Calculer mes allures"}
+                    >            
+                      <p>{computingPaces ? "⏳ Calcul..." : "Calculer mes allures"} <span className="premium-icon">⭐</span></p>
+                      
                     </button>
                   </div>
                 </div>

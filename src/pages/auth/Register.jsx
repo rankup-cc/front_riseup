@@ -18,6 +18,7 @@ import {Alert, AlertDescription, AlertTitle} from "@/components/ui/alert.jsx";
 import {AlertCircleIcon} from "lucide-react";
 import LoadingBtn from "@/components/Loading/LoadingBtn.jsx";
 import {Navigate} from "react-router";
+import {Checkbox} from "@/components/ui/checkbox.jsx";
 const symbolRegex = /[!@#$%^&*(),.?":{}|<>]/;
 const formSchema = z.object({
     email: z.string().email({
@@ -37,7 +38,8 @@ const formSchema = z.object({
         .refine((value) => symbolRegex.test(value), {
             message: "Le mot de passe doit contenir au moins un symbole.",
         }),
-    password_confirmation: z.string()
+    password_confirmation: z.string(),
+    isCoach: z.boolean().default(false).optional()
 }).refine(data => data.password === data.password_confirmation, {
     message: "Les mots de passe ne correspondent pas.",
     path: ["password_confirmation"], // Affiche l'erreur sur le champ de confirmation
@@ -52,6 +54,7 @@ export default function Register() {
             email: "",
             password: "",
             password_confirmation: "",
+            isCoach: false,
         },
     });
 
@@ -66,6 +69,8 @@ export default function Register() {
                 email: values.email,
                 password: values.password,
                 password_confirmation: values.password_confirmation,
+                is_coach: values.isCoach,
+                role: values.isCoach ? "coach" : "user",
             })
             setIsLoading(false);
             return <Navigate to="/" replace />;
@@ -93,7 +98,7 @@ export default function Register() {
                                         <FormItem>
                                             <FormLabel>Email</FormLabel>
                                             <FormControl>
-                                                <Input type="email" autocomplete="email" placeholder="jimmy.gressier@kiprun.com" {...field} />
+                                                <Input type="email" autoComplete="email" placeholder="jimmy.gressier@kiprun.com" {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -106,7 +111,7 @@ export default function Register() {
                                         <FormItem>
                                             <FormLabel>Mot de passe</FormLabel>
                                             <FormControl>
-                                                <Input type="password" autocomplete="new-password" placeholder="********" {...field} />
+                                                <Input type="password" autoComplete="new-password" placeholder="********" {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -119,8 +124,32 @@ export default function Register() {
                                         <FormItem>
                                             <FormLabel>Confirmer le mot de passe</FormLabel>
                                             <FormControl>
-                                                <Input type="password" autocomplete="new-password" placeholder="********" {...field} />
+                                                <Input type="password" autoComplete="new-password" placeholder="********" {...field} />
                                             </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="isCoach"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-row items-start gap-3 space-y-0 rounded-md border border-muted px-3 py-2">
+                                            <FormControl>
+                                                <Checkbox
+                                                    checked={field.value}
+                                                    onCheckedChange={(checked) => field.onChange(checked === true)}
+                                                    id="isCoach"
+                                                />
+                                            </FormControl>
+                                            <div className="space-y-1 leading-none">
+                                                <label htmlFor="isCoach" className="cursor-pointer text-sm font-medium">
+                                                    Je suis coach / entraîneur
+                                                </label>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Nous activerons ton espace coach après vérification de ton email.
+                                                </p>
+                                            </div>
                                             <FormMessage />
                                         </FormItem>
                                     )}

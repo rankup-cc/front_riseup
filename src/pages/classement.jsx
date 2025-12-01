@@ -1,9 +1,9 @@
-import RiseupClassement from "@/components/classement/SportsDashboard.jsx";
+import Leaderboard from "@/components/classement/Leaderboard.jsx";
 
 export default function ClassementPage() {
   return (
     <div className="content-section">
-      <RiseupClassement />
+      <Leaderboard />
     </div>
   );
 }

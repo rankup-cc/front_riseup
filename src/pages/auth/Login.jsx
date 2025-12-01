@@ -73,7 +73,7 @@ export default function Login() {
                                         <FormItem>
                                             <FormLabel>Email</FormLabel>
                                             <FormControl>
-                                                <Input type="email" autocomplete="email" placeholder="jimmy.gressier@kiprun.com" {...field} />
+                                                <Input type="email" autoComplete="email" placeholder="jimmy.gressier@kiprun.com" {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>

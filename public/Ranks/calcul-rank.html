@@ -140,6 +140,25 @@
       if (!ranks || !Object.keys(ranks).length) return;
       window.parent?.postMessage({ type: "ranks:result", ranks }, "*");
     }
+    function postIframeHeight(extra = 60) {
+      const h = Math.max(
+        document.documentElement.scrollHeight,
+        document.body.scrollHeight
+      );
+      window.parent?.postMessage({ type: "ranks:height", height: h + extra }, "*");
+    }
+
+    // … dans ton handler “Calculer” :
+    function onCalculerClick() {
+      const ranks = computeRanks(); // <- ton calcul existant
+
+      // 1) on envoie les résultats (tu fais probablement déjà ça)
+      window.parent?.postMessage({ type: "ranks:result", ranks }, "*");
+
+      // 2) on pousse la hauteur UNE FOIS (simple et suffisant ici)
+      postIframeHeight(60);
+    }
+
 
     window.addEventListener("message", (e) => {
       if (e?.data?.type === "ranks:export" && window.__lastRanks) {

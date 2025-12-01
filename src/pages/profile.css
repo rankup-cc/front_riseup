@@ -5,8 +5,25 @@
   --mint-2: #14919B;
   --paper: #E0F2F1;
   --border: rgba(69, 223, 177, 0.2);
+  --rank-width: 1000px;       /* largeur du conteneur */
+  --rank-height: 1450px;       /* hauteur */
+  --rank-offset-x: 40px;      /* décalage horizontal depuis la légende */
 }
 
+.dashboard-shell {
+  display: grid;
+  grid-template-columns: 380px 1fr; /* left fixed, right flexible */
+  gap: 30px;
+  align-items: start;
+  width: 100%;
+  margin: 40px auto;
+}
+
+.legend-card {
+  grid-column: 1 / 2;
+  width: 100%;
+  max-width: 380px;      /* control the legend width here */
+}
 
 .profile-page {
   background: var(--bg);
@@ -17,7 +34,7 @@
 .encadré-bienvenue {
   background: linear-gradient(135deg, #14919B, #45DFB1);
   color: #E0F2F1;
-  border-radius: 40px;
+  border-radius: 20px;
   font-size: 22px;
   font-weight: 600;
   width: 1100px;
@@ -26,23 +43,26 @@
   padding-left: 10px;
   text-align: center-left;
   margin-top: -50px;
-  margin-left: -10px;
+  margin-left: 80px;
 }
 
 .profile-wrap {
-  width: 1200px;
+  width: 1400px;
   margin: 0 auto;
   padding: 20px;
 }
 
 /* Header */
-.profile-header {
+.profile-header { /*sert pour l'encadré mon profil*/
   background: var(--ink);
   border-radius: 20px;
   padding: 25px 30px;
-  margin-bottom: 30px;
+  margin-bottom: 15px;
   box-shadow: 0 5px 15px rgba(0,0,0,.3);
   border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 .profile-header h1 {
   color: var(--paper);
@@ -51,15 +71,30 @@
   margin: 0;
 }
 
+.profile-avatar-chip {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: #14213d;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.25rem;
+  box-shadow: 0 10px 25px rgba(20, 33, 61, 0.35);
+}
+
 /* Tabs */
 .profile-tabs {
   display: flex;
   background: var(--ink);
   border-radius: 15px;
-  margin-bottom: 30px;
+  margin-bottom: 60px;
   padding: 5px;
   border: 1px solid var(--border);
 }
+
 .tab-btn {
   flex: 1;
   background: transparent;
@@ -67,11 +102,19 @@
   color: var(--paper);
   padding: 15px 20px;
   border-radius: 10px;
+  margin: 5px 5px 5px 5px;
   cursor: pointer;
   font-weight: 500;
   font-size: 16px;
   transition: .25s ease;
 }
+.tab-btn:hover{
+            cursor: "pointer";
+            transition: all 0.1s;
+            background-color:#14919B;
+            opacity: 0.95;
+            transform: translateY(-3px);
+            box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16);}
 .tab-btn.active {
   background: linear-gradient(135deg, var(--mint), var(--mint-2));
 }
@@ -118,7 +161,7 @@
 
 /* Form */
 .form-grid {
-  display: grid;
+  display: inline-flexbox;
   grid-template-columns: 1fr 1fr;
   gap: 25px;
   margin-bottom: 30px;
@@ -166,6 +209,32 @@
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 15px;
 }
+
+/* Bloc calcul de rangs (iframe) */
+.rank-input-card {
+  grid-column: 2 / 3;
+  position: relative;
+  background: var(--ink);
+  border-radius: 20px;
+  box-shadow: 0 5px 15px rgba(0,0,0,.3);
+  border: 1px solid var(--border);
+  overflow: hidden;
+
+  /* ⬇️ remove fixed widths/heights; let it stretch */
+
+  /* height is driven by the iframe height you set from JS */
+}
+
+/* Iframe à l'intérieur */
+/* Iframe inside the calculator card */
+.rank-input-card iframe {
+  display: block;
+  width: 100%;           /* fill the card width */
+  max-height: 2100px;                     /* hauteur du conteneur gris actuellement bloqué car je n'arrive pas à régler la hauteur selon résultat */
+  border: none;
+  border-radius: 0 0 20px 20px;
+}
+
 .rank-card {
   background: var(--paper);
   border-radius: 12px;
@@ -226,24 +295,95 @@
   font-size: 14px;
   font-weight: 500;
 }
-.legend-card{
-    margin-left: -180px;
-    margin-top: 20px;
-    margin-bottom: 20px;
-    width: 400px;
-}
+
 /* Savebar (onglet Rangs) */
-.savebar { margin-top: 16px; display: flex; align-items: center; gap: 12px; background: #0f2640; border: 1px solid rgba(69,223,177,.25); padding: 12px 14px; border-radius: 12px; }
-.dot { width: 10px; height: 10px; border-radius: 50%; background: #6b7280; }
+.savebar { margin-top: 16px; 
+  display: flex; 
+  align-items: center; 
+  justify-content: flex-start;
+  gap: 12px; 
+  background: #0f2640; 
+  border: 1px solid rgba(69,223,177,.25); 
+  padding: 12px 14px; 
+  border-radius: 12px; }
+
+.dot { width: 10px; 
+  height: 10px; 
+  border-radius: 50%; 
+  background: #6b7280; }
+
 .dot.ok { background: #45DFB1; }
-.savebar-text { color: #E0F2F1; font-size: 14px; }
-.savebar-btn { margin-left: auto; border: 0; border-radius: 10px; padding: 10px 16px; font-weight: 700; font-size: 14px; cursor: pointer; background: linear-gradient(135deg, var(--mint), var(--mint-2)); color: #0b1d2f; }
-.savebar-btn:disabled { opacity: .6; cursor: not-allowed; }
+.savebar-text { color: #E0F2F1; 
+  font-size: 14px; 
+  margin-right: 130px; }
+
+/* bouton sauvegarder les ranks */
+.savebar-btn { margin-left: 150px ; /* pour décaler les deux boutons */
+  border: 0; 
+  border-radius: 10px; 
+  padding: 10px 10px; 
+  font-weight: 700; 
+  font-size: 14px; 
+  cursor: pointer; 
+  background: linear-gradient(135deg, var(--mint), var(--mint-2));
+   color: #0b1d2f; }
+/*bouton calculer les allures*/
+
+.calcul-btn { 
+  margin-right: auto;
+  border: 0; 
+  border-radius: 10px;    
+  padding: 10px 10px 10px 40px; 
+  font-weight: 700; 
+  font-size: 14px; 
+  cursor: pointer; 
+  background: linear-gradient(135deg, #FFF287,#C83F12 ); 
+  color: #0b1d2f; }
+
+.calcul-btn:hover{ background: linear-gradient(135deg, #4E56C0,#FDCFFA)
+  ; box-shadow: 0 5px 15px rgba(0,0,0,.2); }
+
+.savebar-btn:disabled:disabled {margin-left: auto ; /* pour garder les deux boutons au bon endroit quand désactivé */}
+.calcul-btn:disabled{background: linear-gradient(135deg, #FFF287,#C83F12 ); 
+}
+.savebar-btn:disabled,.calcul-btn:disabled { opacity: .6; 
+  cursor: not-allowed; }
+
+.calcul-btn .premium-icon {
+  position:left;
+  opacity: 0;
+  transform: translateX(30px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.savebar-btn:hover {
+  transform: translateY(-3px);
+  cursor: "pointer";
+  transition: all 0.1s;
+  box-shadow: 0 5px 15px rgba(0,0,0,.2);
+}
+/* Au survol : on affiche l’icône */
+.calcul-btn:hover .premium-icon {
+  opacity: 1;
+  transform: translateY(0);
+}
 
 /* Responsive */
 @media (max-width: 1280px) {
-  .profile-wrap { width: 100%; padding: 20px 16px; }
-}
-@media (max-width: 800px) {
-  .form-grid { grid-template-columns: 1fr; }
+  .dashboard-shell {
+    flex-direction: column;
+    align-items: center;
+    margin-left: 0;
+    gap: 40px;
+  }
+
+  .legend-card,
+  .rank-input-card {
+    width: 100%;
+    max-width: 800px;
+  }
+
+  .rank-input-card iframe {
+    height: 720px;
+  }
 }

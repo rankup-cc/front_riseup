@@ -1,0 +1,91 @@
+.subscription-upsell-card {
+  max-width: 900px;
+  margin: 2rem auto;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+ .subscription-upsell-card h2 {
+  margin-bottom: 1rem;
+}
+
+.subscription-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.subscription-options article {
+  border-radius: 1rem;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  padding: 1rem;
+  background: #f8fbff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.subscription-options .price {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0b2745;
+}
+
+.subscription-options ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: rgba(11,39,69,0.8);
+}
+
+.subscription-text {
+  font-size: 0.9rem;
+  color: rgba(11,39,69,0.85);
+  margin: 0;
+}
+
+.subscription-visual {
+  width: 100%;
+  height: 120px;
+  border-radius: 0.75rem;
+  margin-bottom: 0.5rem;
+  background-size: cover;
+  background-position: center;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.4);
+}
+
+.subscription-visual.basic {
+  background-image: linear-gradient(135deg, #c4f0e6, #7cc4ff);
+}
+.subscription-visual.premium {
+  background-image: linear-gradient(135deg, #f8cdda, #1d2b64);
+}
+
+.subscription-btn {
+  margin-top: auto;
+  border-radius: 999px;
+  border: none;
+  background: #10b981;
+  color: #fff;
+  padding: 0.6rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.subscription-btn.secondary {
+  background: #213a57;
+}
+
+@media (max-width: 780px) {
+  .subscription-options {
+    grid-template-columns: 1fr;
+  }
+}
+
+.coach-selection {
+  margin-top: 1.5rem;
+}
+.coach-request-hint {
+  margin-top: 0.75rem;
+  color: #213a57;
+  font-style: italic;
+}

@@ -1,0 +1,670 @@
+.plan-page {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.athlete-plan-view {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding-bottom: 2rem;
+}
+
+.athlete-paces-summary {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  background: linear-gradient(135deg, rgba(226, 245, 255, 0.75), rgba(255, 255, 255, 0.95));
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+}
+
+.athlete-paces-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+
+.athlete-paces-summary-header h2 {
+  margin: 0.15rem 0 0;
+  font-size: 1.2rem;
+}
+
+.athlete-paces-date.small {
+  font-size: 0.85rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: #fff;
+}
+
+.athlete-paces-message {
+  margin-top: 0.75rem;
+  color: #213a57;
+}
+
+.pace-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.pace-chip {
+  background: #fff;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(33, 58, 87, 0.35);
+  padding: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  box-shadow: 0 15px 25px rgba(15, 23, 42, 0.08);
+}
+
+.pace-chip.small {
+  padding: 0.6rem 0.75rem;
+  border-color: rgba(33, 58, 87, 0.35);
+}
+
+.pace-chip-label {
+  font-size: 0.85rem;
+  color: rgba(15, 23, 42, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.pace-chip-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #213a57;
+}
+
+.pace-intervals {
+  margin-top: 1rem;
+}
+
+.pace-intervals-title {
+  font-weight: 600;
+  color: #213a57;
+  margin-bottom: 0.4rem;
+}
+
+.pace-intervals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.5rem;
+}
+
+.plan-header {
+  margin: 10px;
+}
+
+.athlete-plan-view .plan-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.athlete-plan-view .plan-header h1 {
+  margin: 0.25rem 0 0;
+}
+
+.history-select {
+  min-width: 220px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  background: #fff;
+  font-weight: 600;
+  color: #213a57;
+}
+
+.plan-week-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.athlete-plan-view .plan-week-card {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 25px 45px rgba(15, 23, 42, 0.08);
+  padding: 1rem;
+}
+
+.athlete-plan-view .plan-week-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.athlete-plan-view .week-date-range {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0b2745;
+  margin: 0;
+}
+
+.athlete-plan-view .week-number-subtitle {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+  color: rgba(11, 39, 69, 0.7);
+}
+
+.athlete-plan-view .plan-days-grid {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.plan-days-grid::-webkit-scrollbar {
+  height: 6px;
+}
+
+.plan-days-grid::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.25);
+  border-radius: 999px;
+}
+
+.athlete-plan-view .plan-day-card {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 0.95rem;
+  padding: 0.85rem;
+  background: #f6fbff;
+  min-width: 300px;
+  flex: 0 0 auto;
+}
+
+.athlete-plan-view .plan-day-card h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #213a57;
+}
+
+.athlete-plan-view .day-session-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.8rem;
+}
+
+.athlete-plan-view .session-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.athlete-plan-view .session-slot-label {
+  font-weight: 600;
+  color: #213a57;
+  background: rgba(255, 255, 255, 0.18);
+  padding: 0.15rem 0.55rem;
+  border-radius: 8px;
+  display: inline-block;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+}
+
+.athlete-plan-view .session-block {
+  background: #fff;
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  border: 1px solid transparent;
+}
+
+.session-block-disabled {
+  opacity: 0.6;
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+.session-disabled-text {
+  margin: 0;
+  font-style: italic;
+  color: rgba(15, 23, 42, 0.7);
+}
+
+.session-type-selector {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.session-type-option {
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8rem;
+  text-align: center;
+  font-weight: 600;
+  color: #213a57;
+  background: #fff;
+}
+
+.session-type-option.readonly.selected {
+  background: #213a57;
+  color: #fff;
+  border-color: #213a57;
+}
+
+.session-intensity-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.session-intensity-chip {
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
+  background: rgba(15, 23, 42, 0.08);
+  color: #213a57;
+  font-weight: 600;
+  border: 1px solid rgba(66, 153, 225, 0.3);
+}
+
+.session-readonly-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.9rem;
+  color: #213a57;
+}
+
+.session-readonly-field strong {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  color: rgba(15, 23, 42, 0.65);
+}
+
+.session-expand-btn {
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  background: transparent;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #213a57;
+  cursor: pointer;
+}
+
+.session-expand-btn:hover {
+  border-color: #213a57;
+}
+
+.session-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 50;
+}
+
+.session-modal {
+  width: min(900px, 100%);
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 25px 55px rgba(15, 23, 42, 0.25);
+  padding: 1.5rem;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.session-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.session-modal-subtitle {
+  margin: 0;
+  color: rgba(15, 23, 42, 0.65);
+  font-size: 0.9rem;
+}
+
+.session-modal-close {
+  border: none;
+  background: rgba(15, 23, 42, 0.05);
+  border-radius: 999px;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.session-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.session-modal-structure {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.session-modal-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 0.85rem;
+  padding: 0.75rem;
+  background: #f8fafc;
+}
+
+.session-modal-column {
+  flex: 1 1 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.session-modal-media {
+  flex: 1 1 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.session-photo-preview {
+  border-radius: 0.75rem;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  padding: 0.5rem;
+  background: #fff;
+}
+
+.session-photo-preview img {
+  width: 100%;
+  border-radius: 0.5rem;
+  object-fit: cover;
+}
+
+.session-expanded-media {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.session-expanded-media label {
+  font-weight: 600;
+  color: #213a57;
+}
+
+/* Pastilles type séance (vue athlète) */
+.athlete-plan-view .session-type-selector {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  gap: 0.45rem;
+  justify-content: flex-start;
+}
+
+.athlete-plan-view .session-type-option {
+  --type-color: #14919b;
+  --type-soft: #f0fbff;
+  border: 1px solid var(--type-color);
+  background: var(--type-soft);
+  color: var(--type-color);
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  width: auto;
+  min-width: 88px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.athlete-plan-view .session-type-option svg {
+  color: var(--type-color);
+  stroke-width: 1.75;
+  opacity: 0.9;
+}
+
+.athlete-plan-view .session-type-option.readonly {
+  opacity: 1;
+  cursor: default;
+  background: #f6fbff;
+}
+
+.athlete-plan-view .session-type-option.readonly.active,
+.athlete-plan-view .session-type-option.readonly.selected {
+  background: var(--type-color);
+  color: #fff;
+  border-color: var(--type-color);
+}
+
+.athlete-plan-view .session-type-option.readonly.active svg,
+.athlete-plan-view .session-type-option.readonly.selected svg {
+  color: #fff;
+  opacity: 1;
+}
+
+.week-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.week-send-btn {
+  background: #14919b;
+  color: #fff;
+  border-color: #14919b;
+}
+
+.feedback-status {
+  font-size: 0.85rem;
+  color: #0f7c85;
+  font-weight: 600;
+}
+
+/* Couleurs d'intensité (alignées sur le diagramme) */
+.session-intensity-chip.intensity-recovery {
+  background: #a2d6f9;
+  color: #0b2745;
+  border-color: rgba(10, 132, 255, 0.3);
+}
+
+.session-intensity-chip.intensity-easy {
+  background: #7bd389;
+  color: #0b2745;
+  border-color: rgba(34, 197, 94, 0.35);
+}
+
+.session-intensity-chip.intensity-intermediate {
+  background: #fde68a;
+  color: #7a4a00;
+  border-color: rgba(234, 179, 8, 0.35);
+}
+
+.session-intensity-chip.intensity-sustained {
+  background: #f59e0b;
+  color: #0b2745;
+  border-color: rgba(217, 119, 6, 0.45);
+}
+
+.session-intensity-chip.intensity-specific {
+  background: #f472b6;
+  color: #0b2745;
+  border-color: rgba(244, 114, 182, 0.45);
+}
+
+.session-intensity-chip.intensity-undefined {
+  background: #fff;
+  color: #213a57;
+  border-color: rgba(15, 23, 42, 0.15);
+}
+
+.session-intensity-chip.intensity-ef {
+  background: #45dfb1;
+  color: #0b2745;
+  border-color: rgba(69, 223, 177, 0.4);
+}
+
+.session-intensity-chip.intensity-marathon {
+  background: #f4c95d;
+  color: #7a4a00;
+  border-color: rgba(244, 201, 93, 0.5);
+}
+
+.session-intensity-chip.intensity-seuil {
+  background: #f28c6a;
+  color: #0b2745;
+  border-color: rgba(242, 140, 106, 0.5);
+}
+
+.session-intensity-chip.intensity-allure5k {
+  background: #4a7ba7;
+  color: #fff;
+  border-color: rgba(74, 123, 167, 0.5);
+}
+
+.session-intensity-chip.intensity-allure1500 {
+  background: #ef476f;
+  color: #fff;
+  border-color: rgba(239, 71, 111, 0.6);
+}
+
+/* Couleurs par type (alignées sur la DA coach) */
+.athlete-plan-view .session-type-option.session-type-course {
+  --type-color: #14919b;
+  --type-soft: #e6f8fb;
+}
+
+.athlete-plan-view .session-type-option.session-type-velo {
+  --type-color: #2ecc71;
+  --type-soft: #e9f9f1;
+}
+
+.athlete-plan-view .session-type-option.session-type-piscine {
+  --type-color: #f59e0b;
+  --type-soft: #fff6e7;
+}
+
+.athlete-plan-view .session-type-option.session-type-musculation {
+  --type-color: #8b5cf6;
+  --type-soft: #f3edff;
+}
+
+.session-feedback {
+  margin-top: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.75rem;
+}
+
+.session-feedback-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.session-add-feedback {
+  border: 1px dashed rgba(20, 145, 155, 0.5);
+  background: #f6fbff;
+  color: #14919b;
+  border-radius: 999px;
+  padding: 0.35rem 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.session-feedback-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.5rem;
+  align-items: end;
+}
+
+.session-feedback-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: #213a57;
+}
+
+.session-feedback-row input[type="number"],
+.session-feedback-row input[type="text"] {
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  border-radius: 0.6rem;
+  padding: 0.4rem 0.55rem;
+  background: #fff;
+  color: #213a57;
+}
+
+.session-feedback-delete {
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  background: #fff1f2;
+  color: #b91c1c;
+  border-radius: 0.6rem;
+  padding: 0.4rem 0.65rem;
+  font-weight: 600;
+  cursor: pointer;
+  justify-self: start;
+}
+
+.rpe-group .rpe-input {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.rpe-input input[type="range"] {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  appearance: none;
+  outline: none;
+}
+
+.rpe-input input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #0f172a;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  cursor: pointer;
+}
+
+.rpe-value {
+  font-weight: 700;
+  color: #213a57;
+}

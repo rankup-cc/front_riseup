@@ -25,6 +25,16 @@ function ClickToCreate({ enabled, onClick }) {
   return null;
 }
 
+// Composant pour capter le clic afin de positionner manuellement l’utilisateur
+function ClickToSetUser({ enabled, onClick }) {
+  useMapEvents({
+    click(e) {
+      if (enabled) onClick(e.latlng);
+    },
+  });
+  return null;
+}
+
 export default function MapTrouver({
   initialCenter = [48.8566, 2.3522],
   users: usersProp = [],
@@ -45,6 +55,7 @@ export default function MapTrouver({
 
   // 📍 Gestion création d’événements
   const [createMode, setCreateMode] = useState(false);
+  const [setUserPosMode, setSetUserPosMode] = useState(false);
   const [draftEvent, setDraftEvent] = useState(null);
   const [events, setEvents] = useState([]);
 
@@ -55,7 +66,7 @@ useEffect(() => {
       credentials: "include",
     })
       .then((res) => res.json())
-      .then(setEvents)
+      .then((data) => setEvents((data || []).filter((ev) => ev.created_by))) // retire les faux évènements sans auteur
       .catch((err) => console.error("Erreur fetch events:", err));
   };
 
@@ -126,6 +137,19 @@ function handleCreateEvent(latlng) {
 
 // Fonction pour créer un évènement
 async function saveEvent() {
+  if (!draftEvent || !draftEvent.title?.trim()) {
+    alert("Renseigne un titre pour l’évènement.");
+    return;
+  }
+  if (!draftEvent.lat || !draftEvent.lng) {
+    alert("Clique sur la carte pour positionner l’évènement.");
+    return;
+  }
+  if (!draftEvent.when) {
+    alert("Renseigne la date/heure de l’évènement.");
+    return;
+  }
+
   try {
     const csrfToken = getCsrfToken();
     const res = await fetch("http://backend.react.test:8000/api/events", {
@@ -149,8 +173,33 @@ async function saveEvent() {
       }),
     });
 
+    if (!res.ok) {
+      const message = await res.text();
+      console.error("Erreur création event:", res.status, message);
+      alert("Création impossible: " + message);
+      return;
+    }
+
     const newEvent = await res.json();
-    setEvents((prev) => [...prev, newEvent]);
+    setEvents((prev) => [
+      ...prev,
+      { ...newEvent, isJoined: true, participants_count: (newEvent.participants_count ?? 0) + 1 },
+    ]);
+
+    // Auto-inscription à l'évènement fraîchement créé
+    try {
+      await fetch(`http://backend.react.test:8000/api/events/${newEvent.id}/join`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "X-XSRF-TOKEN": csrfToken,
+        },
+      });
+    } catch (joinErr) {
+      console.error("Erreur auto-join event:", joinErr);
+    }
+
     setDraftEvent(null);
     setCreateMode(false);
     window.dispatchEvent(new Event("eventsUpdated")); // 🔄 actualise ActivityFeed
@@ -164,7 +213,7 @@ async function saveEvent() {
 async function joinEvent(eventId) {
   try {
     const csrfToken = getCsrfToken();
-    await fetch(`http://backend.react.test:8000/api/events/${eventId}/join`, {
+    const res = await fetch(`http://backend.react.test:8000/api/events/${eventId}/join`, {
       method: "POST",
       credentials: "include",
       headers: {
@@ -173,6 +222,11 @@ async function joinEvent(eventId) {
       },
       
     });
+    if (!res.ok) {
+      const txt = await res.text();
+      alert("Inscription impossible : " + txt);
+      return;
+    }
 
     setEvents((prev) =>
       prev.map((ev) =>
@@ -188,7 +242,7 @@ async function joinEvent(eventId) {
 async function leaveEvent(eventId) {
   try {
     const csrfToken = getCsrfToken();
-    await fetch(`http://backend.react.test:8000/api/events/${eventId}/leave`, {
+    const res = await fetch(`http://backend.react.test:8000/api/events/${eventId}/leave`, {
       method: "DELETE",
       credentials: "include",
       headers: {
@@ -196,6 +250,11 @@ async function leaveEvent(eventId) {
         "X-XSRF-TOKEN": csrfToken, // ✅ Ajout ici
       }
     });
+    if (!res.ok) {
+      const txt = await res.text();
+      alert("Impossible de se désinscrire : " + txt);
+      return;
+    }
 
     setEvents((prev) =>
       prev.map((ev) =>
@@ -325,6 +384,15 @@ const filteredEvents = useMemo(() => {
             style={{ padding: "8px 14px", borderRadius: 12, border: "none", background: "#45DFB1", color: "#FFF", fontWeight: 700 }}
           >
             {createMode ? "Annuler" : "Créer un évènement"}
+          </button>
+          <button
+            onClick={() => {
+              setSetUserPosMode((m) => !m);
+              setCreateMode(false);
+            }}
+            style={{ padding: "8px 14px", borderRadius: 12, border: "1px solid #45DFB1", background: setUserPosMode ? "#45DFB1" : "transparent", color: "#E0F2F1", fontWeight: 700 }}
+          >
+            {setUserPosMode ? "Cliquez sur la carte…" : "Me positionner"}
           </button>
         </div>
       </div>
@@ -574,6 +642,13 @@ const filteredEvents = useMemo(() => {
 
           {/* Mode création : clic sur la carte pour poser l’évènement */}
           <ClickToCreate enabled={createMode} onClick={handleCreateEvent} />
+          <ClickToSetUser
+            enabled={setUserPosMode}
+            onClick={(latlng) => {
+              setUserPos([latlng.lat, latlng.lng]);
+              setSetUserPosMode(false);
+            }}
+          />
 
           {/* Prévisualisation + formulaire de l’évènement en cours */}
           {draftEvent && (

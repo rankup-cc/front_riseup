@@ -1,0 +1,104 @@
+.header-groupes {
+  color: #fff;
+  background-color: #213A57;
+  padding: 10px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+}
+.carte-groupe {
+  width: 100%;
+}
+
+.groupe-créer {
+  margin-top: 10px;
+}
+.carte-groupe > .card {
+  margin-top: 1.5rem;
+}
+.group-members {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.member-pill {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid rgba(15, 23, 42, 0.2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #0f172a;
+  background: #E0F2F1;
+  text-transform: uppercase;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.member-pill:hover {
+  transform: translateY(-3px);
+  background-color: #ABE7B2;
+}
+
+.search-results {
+  background: #fff;
+  color: #213A57;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 12px;
+  list-style: none;
+  padding: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.search-results li button {
+  width: 100%;
+  text-align: left;
+  border: none;
+  padding: 0.6rem 0.9rem;
+  background: transparent;
+  color: #213A57;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.search-results li button:hover {
+  background: rgba(20, 145, 155, 0.12);
+}
+
+.search-result-primary {
+  font-weight: 600;
+}
+
+.search-result-secondary {
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+.coach-group-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.remove-member-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.remove-member-form select {
+  flex: 1;
+  min-width: 180px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  padding: 0.45rem 0.75rem;
+  background: #fff;
+}

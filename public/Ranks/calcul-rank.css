@@ -3,11 +3,23 @@
 body {
   font-family:-apple-system, BlinkMacSystemFont,'Segoe UI', Roboto, sans-serif;
   background:linear-gradient(135deg,#f0f4f8 0%,#e2e8f0 100%);
-  min-height:100vh; padding:20px;
-}
+  min-height:800vh; padding:20px; }
 .main-container {
-  max-width:1200px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr;
-  gap:30px; align-items:start;
+  --calc-width: 1800px;          /* ⚙️ largeur totale personnalisable */
+  --calc-max-width: 95vw;        /* limite responsive */
+  --calc-gap: 40px;              /* espace entre les colonnes */
+  --calc-padding: 40px;          /* marges internes */
+  --calc-align: center;          /* center | start | end */
+
+  width: var(--calc-width);
+  max-width: var(--calc-max-width);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--calc-gap);
+  align-items: start;
+  justify-content: var(--calc-align);
+  padding: var(--calc-padding);
 }
 .calculator-container,.results-container {
   background:#fff; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,.1); padding:40px;

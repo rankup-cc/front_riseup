@@ -48,6 +48,11 @@ export const useAuthStore = create((set, get) => ({
         await get().fetchUser();
     },
 
+    requestCoachVerification: async () => {
+        await refreshCsrfToken();
+        await api.post(`/auth/coach/send-verification`);
+    },
+
     forgotPassword: async (data) => {
         await refreshCsrfToken();
         await api.post(`/auth/forgot-password`, data);

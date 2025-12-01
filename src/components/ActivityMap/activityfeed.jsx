@@ -43,7 +43,7 @@ useEffect(() => {
     credentials: "include",
   })
     .then((res) => res.json())
-    .then(setEvents)
+    .then((data) => setEvents((data || []).filter((ev) => ev.created_by)))
     .catch((err) => console.error("Erreur fetch events:", err));
 }, []);
 
@@ -61,6 +61,16 @@ useEffect(() => {
 async function createEvent() {
   if (isCreating) return; // ✅ empêche le double clic
     setIsCreating(true);
+  if (!newEvent.title?.trim()) {
+    alert("Titre requis pour créer l’évènement.");
+    setIsCreating(false);
+    return;
+  }
+  if (!newEvent.start_time) {
+    alert("Date/heure de début requise.");
+    setIsCreating(false);
+    return;
+  }
   try {
     const csrfToken = getCsrfToken();
 
@@ -89,7 +99,7 @@ async function createEvent() {
     });
 
     if (!res.ok) {
-      const errData = await res.json();
+      const errData = await res.json().catch(() => ({}));
       console.error("Erreur backend:", errData);
 
       if (res.status === 422 && errData.details) {
@@ -103,13 +113,31 @@ async function createEvent() {
     }
 
     const data = await res.json();
-    setEvents((prev) => [...prev, data]);
+    setEvents((prev) =>
+      [...prev, { ...data, isJoined: true, participants_count: (data.participants_count ?? 0) + 1 }].filter(
+        (ev) => ev.created_by
+      )
+    );
+
+    // Auto-join pour le créateur
+    try {
+      await fetch(`http://backend.react.test:8000/api/events/${data.id}/join`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "X-XSRF-TOKEN": csrfToken,
+        },
+      });
+    } catch (joinErr) {
+      console.error("Erreur auto-join event:", joinErr);
+    }
     setShowCreateForm(false);
     // Force un petit rechargement global des events après 1 seconde
     setTimeout(() => {
       fetch("http://backend.react.test:8000/api/events", { credentials: "include" })
         .then((res) => res.json())
-        .then(setEvents)
+        .then((refreshed) => setEvents((refreshed || []).filter((ev) => ev.created_by)))
         .catch((err) => console.error("Erreur refresh events:", err));
     }, 1000);
 
@@ -143,7 +171,7 @@ async function createEvent() {
   // --- Rejoindre / quitter un événement ---
   async function joinEvent(eventId) {
     const csrfToken = getCsrfToken();
-    await fetch(`http://backend.react.test:8000/api/events/${eventId}/join`, {
+    const res = await fetch(`http://backend.react.test:8000/api/events/${eventId}/join`, {
       method: "POST",
       credentials: "include",
       headers: {
@@ -151,6 +179,11 @@ async function createEvent() {
         "X-XSRF-TOKEN": csrfToken,
       },
     });
+    if (!res.ok) {
+      const txt = await res.text();
+      alert("Inscription impossible : " + txt);
+      return;
+    }
 
     setEvents((prev) =>
       prev.map((ev) =>
@@ -167,7 +200,7 @@ async function createEvent() {
 
   async function leaveEvent(eventId) {
     const csrfToken = getCsrfToken();
-    await fetch(`http://backend.react.test:8000/api/events/${eventId}/leave`, {
+    const res = await fetch(`http://backend.react.test:8000/api/events/${eventId}/leave`, {
       method: "DELETE",
       credentials: "include",
       headers: {
@@ -175,6 +208,11 @@ async function createEvent() {
         "X-XSRF-TOKEN": csrfToken,
       },
     });
+    if (!res.ok) {
+      const txt = await res.text();
+      alert("Impossible de se désinscrire : " + txt);
+      return;
+    }
 
     setEvents((prev) =>
       prev.map((ev) =>
@@ -624,123 +662,115 @@ async function searchAddress(query) {
 
           {/* Liste d'événements */}
           <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-            {[...displayedEvents]
-              .sort((a, b) => {
-                // 🔹 Si "a" est rejoint et pas "b", a vient avant
-                if (a.isJoined && !b.isJoined) return -1;
-                // 🔹 Si "b" est rejoint et pas "a", b vient avant
-                if (!a.isJoined && b.isJoined) return 1;
-                // 🔹 Sinon, tri secondaire : du plus récent au plus ancien
-                return new Date(b.created_at) - new Date(a.created_at);
-              })
-              .map((event) => {
+            {displayedEvents.length === 0 ? (
+              <p style={{ color: "#E0F2F1" }}>
+                Aucun événement publié pour le moment.
+              </p>
+            ) : (
+              [...displayedEvents]
+                .sort((a, b) => {
+                  if (a.isJoined && !b.isJoined) return -1;
+                  if (!a.isJoined && b.isJoined) return 1;
+                  return new Date(b.created_at) - new Date(a.created_at);
+                })
+                .map((event) => {
+                  const isMine = user && event.created_by === user.id;
 
-              const isMine = user && event.created_by === user.id;
-
-              return (
-                <div
-                  key={event.id}
-                  style={{
-                    backgroundColor: "#E0F2F1",
-                    borderRadius: "15px",
-                    padding: "20px",
-                    color: "#213A57",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <b>{event.title}</b>
-                    <span
+                  return (
+                    <div
+                      key={event.id}
                       style={{
-                        background: getDifficultyColor(event.training_rank),
+                        backgroundColor: "#E0F2F1",
+                        borderRadius: "15px",
+                        padding: "20px",
                         color: "#213A57",
-                        padding: "2px 8px",
-                        borderRadius: "8px",
-                        fontWeight: "600",
                       }}
                     >
-                      Rang {event.training_rank}
-                    </span>
-                  </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <b>{event.title}</b>
+                        <span
+                          style={{
+                            background: getDifficultyColor(event.training_rank),
+                            color: "#213A57",
+                            padding: "2px 8px",
+                            borderRadius: "8px",
+                            fontWeight: "600",
+                          }}
+                        >
+                          Rang {event.training_rank}
+                        </span>
+                      </div>
 
-                  <p>{event.description}</p>
-                  <div style={{ color: "#14919B", fontSize: "14px" }}>
-                    📍 {event.address ?? "Adresse inconnue"}<br />
-                    📏 {event.kilometre ?? "-"} km — ⏱ {event.allure_visee ?? "-"} <br />
-                    🏋️ Type : {event.type ?? "-"} <br />
-                    👥 Participants : {event.participants_count ?? 0}
-                      
+                      <p>{event.description}</p>
+                      <div style={{ color: "#14919B", fontSize: "14px" }}>
+                        📍 {event.address ?? "Adresse inconnue"}<br />
+                        📏 {event.kilometre ?? "-"} km — ⏱ {event.allure_visee ?? "-"} <br />
+                        🏋️ Type : {event.type ?? "-"} <br />
+                        👥 Participants : {event.participants_count ?? 0}
+                      </div>
 
+                      <div style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "center" }}>
+                        <button
+                          onClick={() =>
+                            event.isJoined ? leaveEvent(event.id) : joinEvent(event.id)
+                          }
+                          style={{
+                            background: event.isJoined ? "#14919B" : "#45DFB1",
+                            color: "#213A57",
+                            border: "none",
+                            borderRadius: "8px",
+                            padding: "8px 16px",
+                            fontWeight: "600",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {event.isJoined ? "Se désinscrire" : "Rejoindre"}
+                        </button>
+
+                        {event.isJoined && (
+                          <button
+                            onClick={() => navigate(`/events/${event.id}/chat`)}
+                            style={{
+                              background: "#173047",
+                              color: "#45DFB1",
+                              border: "none",
+                              borderRadius: "8px",
+                              padding: "8px 16px",
+                              fontWeight: "600",
+                              cursor: "pointer",
+                            }}
+                          >
+                            💬 Discussion
+                          </button>
+                        )}
+
+                        {isMine && (
+                          <button
+                            onClick={() => deleteEvent(event.id)}
+                            style={{
+                              background: "#EF4444",
+                              color: "#FFF",
+                              border: "none",
+                              borderRadius: "8px",
+                              padding: "8px 16px",
+                              fontWeight: "600",
+                            }}
+                          >
+                            Supprimer
+                          </button>
+                        )}
+                      </div>
                     </div>
-
-                  <div style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "center" }}>
-                  {/* Bouton rejoindre / se désinscrire */}
-                  <button
-                    onClick={() =>
-                      event.isJoined
-                        ? leaveEvent(event.id)
-                        : joinEvent(event.id)
-                    }
-                    style={{
-                      background: event.isJoined ? "#14919B" : "#45DFB1",
-                      color: "#213A57",
-                      border: "none",
-                      borderRadius: "8px",
-                      padding: "8px 16px",
-                      fontWeight: "600",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {event.isJoined ? "Se désinscrire" : "Rejoindre"}
-                  </button>
-
-                  {/* Bouton discussion visible seulement si inscrit */}
-                  {event.isJoined && (
-                    <button
-                      onClick={() => navigate(`/events/${event.id}/chat`)}
-                      style={{
-                        background: "#173047",
-                        color: "#45DFB1",
-                        border: "none",
-                        borderRadius: "8px",
-                        padding: "8px 16px",
-                        fontWeight: "600",
-                        cursor: "pointer",
-                      }}
-                    >
-                      💬 Discussion
-                    </button>
-                  )}
-
-
-                  {/* Bouton supprimer visible seulement si c’est ton événement */}
-                  {isMine && (
-                    <button
-                      onClick={() => deleteEvent(event.id)}
-                      style={{
-                        background: "#EF4444",
-                        color: "#FFF",
-                        border: "none",
-                        borderRadius: "8px",
-                        padding: "8px 16px",
-                        fontWeight: "600",
-                      }}
-                    >
-                      Supprimer
-                    </button>
-                  )}
-                </div>
-
-                </div>
-              );
-            })}
-          </div>
-        </>
+                  );
+                })
+            )}
+          </div>        </>
       )}
     </div>
   );
