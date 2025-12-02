@@ -1,81 +1,136 @@
-.subscription-upsell-card {
-  max-width: 900px;
-  margin: 2rem auto;
-  border-radius: 1.25rem;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+.subscription-hero {
+  padding: 0;
 }
 
- .subscription-upsell-card h2 {
-  margin-bottom: 1rem;
+.subscription-hero-overlay {
+  background: linear-gradient(135deg, rgba(19,46,75,0.8), rgba(16,185,129,0.75)),
+              url("https://images.unsplash.com/photo-1499393072391-8581c5fc78f4?auto=format&fit=crop&w=1600&q=80") center/cover no-repeat;
+  color: #fff;
+  padding: 2.5rem 1.25rem 1.5rem;
+  border-radius: 0 0 24px 24px;
+  text-align: center;
+}
+
+.subscription-hero-content h1 {
+  font-size: clamp(2rem, 4vw, 2.6rem);
+  margin: 0.4rem 0 0.6rem;
+  font-weight: 800;
+}
+
+.subscription-hero-content h1 span {
+  color: #6ff5c1;
+}
+
+.hero-kicker {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #e2f3ff;
+  margin: 0;
+}
+
+.subscription-upsell-card {
+  max-width: 1200px;
+  margin: 10px auto 2rem;
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  box-shadow: 0 35px 60px rgba(15,23,42,0.15);
 }
 
 .subscription-options {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(3, minmax(260px, 1fr));
+  gap: 1rem;
+  align-items: stretch;
 }
 
-.subscription-options article {
-  border-radius: 1rem;
-  border: 1px solid rgba(15, 23, 42, 0.1);
-  padding: 1rem;
-  background: #f8fbff;
+.subscription-card {
+  position: relative;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 1.25rem;
+  background: transparent;
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+  box-shadow: 0 20px 30px rgba(15,23,42,0.08);
+  min-height: 430px;
+  height: 100%;
+  color: #fff;
+}
+
+.subscription-card.basic {
+  background: linear-gradient(135deg, #1aa6c5, #17c3b2) !important;
+}
+
+.subscription-card.initie {
+  background: linear-gradient(135deg, #0f5d9a, #0fa3e3) !important;
+  transform: translateY(-8px);
+}
+
+.subscription-card.expert {
+  background: linear-gradient(135deg, #f97316, #ef4444) !important;
+  transform: translateY(-8px);
+}
+
+.subscription-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.92);
+  color: #0c6a73;
+  font-weight: 700;
+  font-size: 0.8rem;
 }
 
 .subscription-options .price {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #0b2745;
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0.2rem 0;
 }
 
 .subscription-options ul {
   margin: 0;
   padding-left: 1.1rem;
-  color: rgba(11,39,69,0.8);
+  color: rgba(255,255,255,0.9);
 }
 
 .subscription-text {
-  font-size: 0.9rem;
-  color: rgba(11,39,69,0.85);
+  font-size: 0.95rem;
+  color: rgba(255,255,255,0.9);
   margin: 0;
 }
 
 .subscription-visual {
-  width: 100%;
-  height: 120px;
-  border-radius: 0.75rem;
-  margin-bottom: 0.5rem;
-  background-size: cover;
-  background-position: center;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.4);
-}
-
-.subscription-visual.basic {
-  background-image: linear-gradient(135deg, #c4f0e6, #7cc4ff);
-}
-.subscription-visual.premium {
-  background-image: linear-gradient(135deg, #f8cdda, #1d2b64);
+  display: none;
 }
 
 .subscription-btn {
   margin-top: auto;
   border-radius: 999px;
   border: none;
-  background: #10b981;
-  color: #fff;
-  padding: 0.6rem 1rem;
-  font-weight: 600;
+  background: #fff;
+  color: #0c6a73;
+  padding: 0.7rem 1rem;
+  font-weight: 700;
   cursor: pointer;
+  box-shadow: 0 12px 20px rgba(20,145,155,0.25);
 }
 
-.subscription-btn.secondary {
-  background: #213a57;
+.subscription-card .subscription-btn {
+  box-shadow: 0 12px 20px rgba(0,0,0,0.2);
 }
 
 @media (max-width: 780px) {
+  .subscription-hero-overlay {
+    padding: 2rem 1rem 1rem;
+  }
+  .subscription-upsell-card {
+    margin: -40px 0 2rem;
+  }
   .subscription-options {
     grid-template-columns: 1fr;
   }
@@ -86,6 +141,6 @@
 }
 .coach-request-hint {
   margin-top: 0.75rem;
-  color: #213a57;
+  color: #fff;
   font-style: italic;
 }

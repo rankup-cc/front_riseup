@@ -3,10 +3,13 @@ import api from "@/services/api";
 import { Bike, Dumbbell, Footprints, Waves, Maximize2, X } from "lucide-react";
 import "@/pages/coach/coach.css";
 import "./AthletePlanView.css";
+import "@/pages/athlete-plan.css";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { usePaces } from "@/context/PacesContext";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/hooks/AuthStore.jsx";
 
 const SESSION_LABELS = {
     am: "Matin",
@@ -273,6 +276,7 @@ function mergeSessionsIntoGrid(sessions = [], baseWeeks = []) {
 }
 
 export default function AthletePlanView({ userId, userCreatedAt }) {
+    const { user } = useAuthStore();
     const [groups, setGroups] = useState([]);
     const [selectedGroupId, setSelectedGroupId] = useState(null);
     const [weeks, setWeeks] = useState(buildEmptyWeeks());
@@ -282,8 +286,62 @@ export default function AthletePlanView({ userId, userCreatedAt }) {
     const [error, setError] = useState("");
     const [modalSession, setModalSession] = useState(null);
     const [planStartDate, setPlanStartDate] = useState(null);
+    const [lastContactOffer, setLastContactOffer] = useState(null);
     const { paces: pacesCtx } = usePaces();
+    const offers = [
+        {
+            id: "debutant",
+            title: "Débutant",
+            price: "10 € / mois",
+            visual: "basic",
+            badge: "",
+            bullets: [
+                "1er mois gratuit.",
+                "Premier RDV pour fixer tes objectifs offert, connaître tes antécédents sportifs, plan hebdo adapté.",
+                "Plan hebdomadaire adapté",
+            ],
+        },
+        {
+            id: "initie",
+            title: "Initié",
+            price: "40 € / mois",
+            visual: "initie",
+            badge: "Populaire",
+            bullets: [
+                "1er mois offert",
+                "Premier RDV pour fixer tes objectifs offert, connaître tes antécédents sportifs, plan hebdo adapté.",
+                "Plan hebdomadaire adapté",
+                "RDV mensuel pour adapter la charge",
+                "Outils de suivi de charge inclus",
+            ],
+        },
+        {
+            id: "expert",
+            title: "Expert",
+            price: "80 € / mois",
+            visual: "expert",
+            badge: "Expert",
+            bullets: [
+                "1er mois offert",
+                "Premier RDV pour fixer tes objectifs offert, connaître tes antécédents sportifs, plan hebdo adapté.",
+                "RDV toutes les 2 semaines",
+                "Conseils sommeil, alimentation, récup, compétition, étirements",
+                "Accès aux évènements Riseup (compétitions, runs communautraires)",
+            ],
+        },
+    ];
 
+    const handleContactOffer = (offer) => {
+        const name = `${user?.first_name ?? user?.name ?? ""} ${user?.last_name ?? ""}`.trim() || "Utilisateur";
+        const email = user?.email ?? "non communiqué";
+        const message =
+            `Demande d'abonnement pour ${offer.title}\n` +
+            `Nom : ${name}\n` +
+            `Email : ${email}\n`;
+
+        api.post("/coach/contact-request", { offer: offer.title, message }).catch(() => {});
+        setLastContactOffer(offer.title);
+    };
     useEffect(() => {
         let mounted = true;
         setLoadingGroups(true);
@@ -505,9 +563,53 @@ export default function AthletePlanView({ userId, userCreatedAt }) {
 
     if (!groups.length) {
         return (
-            <div className="plan-page">
-                <p>Vous ne faites partie d’aucun groupe pour le moment.</p>
-            </div>
+            <main className="plan-page athlete-plan-page subscription-hero">
+                <div className="subscription-hero-overlay">
+                    <div className="subscription-hero-content">
+                        <p className="hero-kicker">Coaching RiseUp</p>
+                        <h1>
+                            Améliore tes chronos <span>en sécurité</span>
+                        </h1>
+                    </div>
+                </div>
+
+                <Card className="subscription-upsell-card">
+                    <CardContent>
+                        <div className="subscription-options">
+                            {offers.map((offer) => (
+                                <article
+                                    key={offer.id}
+                                    className={`subscription-card ${offer.badge ? "featured" : ""} ${offer.id}`}
+                                >
+                                    {offer.badge && <span className="subscription-badge">{offer.badge}</span>}
+                                    <div className={`subscription-visual ${offer.visual}`} />
+                                    <h3>{offer.title}</h3>
+                                    <p className="price">{offer.price}</p>
+                                    <p className="subscription-text">{offer.description}</p>
+                                    <ul>
+                                        {offer.bullets.map((item) => (
+                                            <li key={item}>{item}</li>
+                                        ))}
+                                    </ul>
+                                    <button
+                                        className="subscription-btn"
+                                        type="button"
+                                        onClick={() => handleContactOffer(offer)}
+                                    >
+                                        Je m’abonne
+                                    </button>
+                                </article>
+                            ))}
+                        </div>
+
+                        {lastContactOffer && (
+                            <p className="coach-request-hint">
+                                Demande envoyée pour l’offre {lastContactOffer}. Vous serez recontacté par un coach.
+                            </p>
+                        )}
+                    </CardContent>
+                </Card>
+            </main>
         );
     }
 
@@ -534,6 +636,21 @@ export default function AthletePlanView({ userId, userCreatedAt }) {
                         </option>
                     ))}
                 </select>
+            </div>
+
+            <div className="rpe-info-card">
+                <h3>Comment remplir tes retours ?</h3>
+                <p>
+                    Le RPE est ton ressenti d’effort sur la séance, de 1 (très facile) à 10 (maximal).
+                    Nous l’utilisons pour calculer la charge et ajuster tes prochaines semaines.
+                </p>
+                <ul className="rpe-list">
+                    <li><span className="rpe-dot rpe-easy" />1-3 : très facile / échauffement</li>
+                    <li><span className="rpe-dot rpe-moderate" />4-6 : effort modéré à soutenu</li>
+                    <li><span className="rpe-dot rpe-hard" />7-8 : exigeant (fractionné, seuil long)</li>
+                    <li><span className="rpe-dot rpe-max" />9-10 : très difficile / quasi-maximal</li>
+                </ul>
+                <p>Pense à le saisir après chaque séance (ou dans tes retours hebdo) pour équilibrer la charge.</p>
             </div>
 
             {error && (

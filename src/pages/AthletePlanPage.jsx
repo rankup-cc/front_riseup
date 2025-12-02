@@ -11,29 +11,46 @@ export default function AthletePlanPage() {
 
     const offers = [
         {
-            id: "plan",
-            title: "Plan personnalisé",
+            id: "debutant",
+            title: "Débutant",
             price: "10 € / mois",
             visual: "basic",
+            badge: "",
             description:
-                "Un plan recalculé chaque semaine selon vos allures et vos objectifs, accès complet au suivi RiseUp.",
+                "1er mois gratuit. Premier RDV pour fixer tes objectifs, connaître tes antécédents sportifs, plan hebdo adapté.",
             bullets: [
-                "Plan ajusté automatiquement avec vos allures calculées.",
-                "Vue calendrier + détail des séances Matin/Soir.",
-                "Messagerie de groupe et suivi des classements.",
+                "1er mois offert",
+                "Plan hebdomadaire adapté",
+                "Premier RDV objectifs + antécédents",
             ],
         },
         {
-            id: "coach",
-            title: "Coaching Premium",
-            price: "25 € / mois",
-            visual: "premium",
+            id: "initie",
+            title: "Initié",
+            price: "40 € / mois",
+            visual: "initie",
+            badge: "Populaire",
             description:
-                "Un coach certifié vous suit, planifie une visio hebdomadaire et ajuste vos séances en temps réel.",
+                "1er mois gratuit. RDV mensuel pour ajuster la charge, outils de suivi de charge d’entraînement.",
             bullets: [
-                "Visio hebdo + debrief complet après chaque séance.",
-                "Plan modifié en direct selon vos retours.",
-                "Support illimité (chat, audio, vidéo) + analyses personnalisées.",
+                "1er mois offert",
+                "RDV mensuel pour adapter la charge",
+                "Outils de suivi de charge inclus",
+            ],
+        },
+        {
+            id: "expert",
+            title: "Expert",
+            price: "80 € / mois",
+            visual: "expert",
+            badge: "Expert",
+            description:
+                "1er mois gratuit. RDV toutes les 2 semaines, conseils sommeil/alimentation/récup/compétition, accès événements Riseup.",
+            bullets: [
+                "1er mois offert",
+                "RDV toutes les 2 semaines",
+                "Conseils sommeil, alimentation, récup, compétition",
+                "Accès aux évènements Riseup",
             ],
         },
     ];
@@ -78,13 +95,28 @@ export default function AthletePlanPage() {
 
     if (!forceAccess && user?.subscription !== "plan" && user?.subscription !== "coach") {
         return (
-            <main className="plan-page athlete-plan-page">
+            <main className="plan-page athlete-plan-page subscription-hero">
+                <div className="subscription-hero-overlay">
+                    <div className="subscription-hero-content">
+                        <p className="hero-kicker">Coaching RiseUp</p>
+                        <h1>
+                            Améliore tes chronos <span>en sécurité</span>
+                        </h1>
+                        <p className="subscription-text">
+                            1er mois gratuit sur toutes les formules. Choisis ton niveau d’accompagnement et lance-toi.
+                        </p>
+                    </div>
+                </div>
+
                 <Card className="subscription-upsell-card">
                     <CardContent>
-                        <h2>Choisissez votre accompagnement</h2>
                         <div className="subscription-options">
                             {offers.map((offer) => (
-                                <article key={offer.id}>
+                                <article
+                                    key={offer.id}
+                                    className={`subscription-card ${offer.badge ? "featured" : ""} ${offer.id}`}
+                                >
+                                    {offer.badge && <span className="subscription-badge">{offer.badge}</span>}
                                     <div className={`subscription-visual ${offer.visual}`} />
                                     <h3>{offer.title}</h3>
                                     <p className="price">{offer.price}</p>
@@ -95,13 +127,11 @@ export default function AthletePlanPage() {
                                         ))}
                                     </ul>
                                     <button
-                                        className={offer.id === "plan" ? "subscription-btn" : "subscription-btn secondary"}
-                                        onClick={() =>
-                                            offer.id === "plan" ? handleContact(offer) : handleContact(offer)
-                                        }
+                                        className="subscription-btn"
+                                        onClick={() => handleContact(offer)}
                                         type="button"
                                     >
-                                        Contacter
+                                        Je m’abonne
                                     </button>
                                 </article>
                             ))}

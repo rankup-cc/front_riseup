@@ -48,13 +48,38 @@ export default function Login() {
 
     return (
         // Conteneur principal qui applique une grille à 2 colonnes sur les grands écrans (lg)
-        <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
-            <div className="hidden bg-muted lg:block">
-                <img
-                    src="https://images.unsplash.com/photo-1551698618-1dfe5d97d256?q=80&w=1974&auto=format&fit=crop"
-                    alt="Image de fond représentant une personne se préparant à courir"
-                    className="h-full w-full object-cover dark:brightness-[0.8]"
-                />
+        <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 bg-white">
+            <div
+                className="hidden lg:flex items-center justify-center p-6"
+                style={{
+                    backgroundImage:
+                        "radial-gradient(circle at 20% 20%, rgba(33,150,156,0.25), transparent 40%), radial-gradient(circle at 80% 30%, rgba(15,111,138,0.25), transparent 35%), radial-gradient(circle at 40% 70%, rgba(25,82,115,0.35), transparent 45%), linear-gradient(135deg, #0b2640, #0f5a6b 50%, #0b2640)",
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    backgroundRepeat: "no-repeat",
+                }}
+                aria-label="RiseUp cover"
+            >
+                <div className="flex items-center gap-6 text-white">
+                    <div
+                        style={{
+                            width: "190px",
+                            height: "190px",
+                            borderRadius: "50%",
+                            backgroundImage: "url('/logoriseup2.jpg')",
+                            backgroundSize: "110%",
+                            backgroundPosition: "center",
+                            backgroundRepeat: "no-repeat",
+                            boxShadow: "0 20px 40px rgba(0,0,0,0.25)",
+                            backgroundColor: "rgba(255,255,255,0.06)",
+                            outline: "4px solid transparent",
+                        }}
+                    />
+                    <div>
+                        <p className="text-5xl font-extrabold leading-tight drop-shadow-md">RiseUp</p>
+                        <p className="text-lg opacity-90">Compete, have fun, and improve</p>
+                    </div>
+                </div>
             </div>
 
             <div className="grid min-h-[100dvh] place-items-center p-4 lg:py-12 lg:px-8">

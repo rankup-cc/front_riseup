@@ -9,7 +9,7 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  padding-bottom: 2rem;
+  padding: 0 10px 2rem 10px;
 }
 
 .athlete-paces-summary {
@@ -112,6 +112,61 @@
 
 .athlete-plan-view .plan-header h1 {
   margin: 0.25rem 0 0;
+}
+
+.rpe-info-card {
+  margin: 0 0 1.5rem 0;
+  padding: 1rem;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 12px;
+  background: #eef5ff;
+}
+
+.rpe-info-card h3 {
+  margin: 0 0 0.5rem;
+}
+
+.rpe-info-card p {
+  margin: 0.25rem 0;
+  color: rgba(11,39,69,0.85);
+}
+
+.rpe-info-card ul {
+  margin: 0.5rem 0 0.5rem 1.2rem;
+  padding-left: 1rem;
+  color: rgba(11,39,69,0.85);
+}
+
+.rpe-list {
+  list-style: none;
+  padding-left: 0;
+}
+
+.rpe-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.rpe-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+}
+
+.rpe-easy {
+  background: #a3e635;
+}
+.rpe-moderate {
+  background: #22c55e;
+}
+.rpe-hard {
+  background: #f97316;
+}
+.rpe-max {
+  background: #ef4444;
 }
 
 .history-select {

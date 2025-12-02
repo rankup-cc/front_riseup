@@ -81,7 +81,7 @@ export default function Register() {
     }
 
     return (
-        <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
+        <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen bg-white">
             <div className="grid min-h-[100dvh] place-items-center p-4 lg:py-12 lg:px-8">
                 <Card className="mx-auto w-full max-w-md">
                     <CardHeader>
@@ -177,12 +177,37 @@ export default function Register() {
                 </Card>
             </div>
 
-            <div className="hidden bg-muted lg:block">
-                <img
-                    src="https://images.unsplash.com/photo-1534185372994-55f9e64235c4?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-                    alt="Image de fond représentant le sport"
-                    className="h-full w-full object-cover dark:brightness-[0.8]"
-                />
+            <div
+                className="hidden lg:flex items-center justify-center p-6"
+                style={{
+                    backgroundImage:
+                        "radial-gradient(circle at 20% 20%, rgba(33,150,156,0.25), transparent 40%), radial-gradient(circle at 80% 30%, rgba(15,111,138,0.25), transparent 35%), radial-gradient(circle at 40% 70%, rgba(25,82,115,0.35), transparent 45%), linear-gradient(135deg, #0b2640, #0f5a6b 50%, #0b2640)",
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    backgroundRepeat: "no-repeat",
+                }}
+                aria-label="RiseUp cover"
+            >
+                <div className="flex items-center gap-6 text-white">
+                    <div
+                        style={{
+                            width: "190px",
+                            height: "190px",
+                            borderRadius: "50%",
+                            backgroundImage: "url('/logoriseup2.jpg')",
+                            backgroundSize: "110%",
+                            backgroundPosition: "center",
+                            backgroundRepeat: "no-repeat",
+                            boxShadow: "0 20px 40px rgba(0,0,0,0.25)",
+                            backgroundColor: "rgba(255,255,255,0.06)",
+                            outline: "4px solid transparent",
+                        }}
+                    />
+                    <div>
+                        <p className="text-5xl font-extrabold leading-tight drop-shadow-md">RiseUp</p>
+                        <p className="text-lg opacity-90">Compete, have fun, and improve</p>
+                    </div>
+                </div>
             </div>
         </div>
     );

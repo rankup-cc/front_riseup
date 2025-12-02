@@ -1323,17 +1323,6 @@ export default function GroupPlan() {
             }));
     }, [weeks]);
 
-    // Positionne la vue directement sur la semaine en cours (relative à la date de début du plan),
-    // tout en conservant les données des semaines précédentes.
-    useEffect(() => {
-        if (!weeks?.length || currentWeekSetRef.current) return;
-        const start = ensureDate(planStartDate || planStartDateRef.current);
-        if (!start) return;
-        const idx = Math.min(Math.max(weeksBetween(start, new Date()), 0), weeks.length - 1);
-        setCurrentWeekIndex(idx);
-        currentWeekSetRef.current = true;
-    }, [weeks, planStartDate]);
-
     const loadEntries = useMemo(() => {
         if (!feedbacks.length) return [];
         return feedbacks.map((fb) => {
