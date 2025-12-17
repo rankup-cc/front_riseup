@@ -58,6 +58,7 @@ export default function MapTrouver({
   const [setUserPosMode, setSetUserPosMode] = useState(false);
   const [draftEvent, setDraftEvent] = useState(null);
   const [events, setEvents] = useState([]);
+  const [creationFeedback, setCreationFeedback] = useState("");
 
 
 useEffect(() => {
@@ -202,6 +203,10 @@ async function saveEvent() {
 
     setDraftEvent(null);
     setCreateMode(false);
+    setSetUserPosMode(false);
+    setCreationFeedback(
+      "Super, tu viens de créer un évènement sportif ! Les autres utilisateurs pourront le voir et le rejoindre. N’hésite pas à contacter tes amis également."
+    );
     window.dispatchEvent(new Event("eventsUpdated")); // 🔄 actualise ActivityFeed
   } catch (err) {
     console.error("Erreur création event:", err);
@@ -329,6 +334,21 @@ const filteredEvents = useMemo(() => {
       }}
     >
       <h3 style={{ color: "#E0F2F1", margin: "0 0 12px" }}>Carte des utilisateurs</h3>
+      {creationFeedback && (
+        <div
+          style={{
+            marginBottom: 12,
+            padding: "10px 12px",
+            borderRadius: 12,
+            background: "rgba(69,223,177,0.12)",
+            color: "#E0F2F1",
+            border: "1px solid rgba(69,223,177,0.3)",
+            fontWeight: 600,
+          }}
+        >
+          {creationFeedback}
+        </div>
+      )}
 
       {/* Toolbar filtres + bouton événement */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 12 }}>
@@ -380,7 +400,10 @@ const filteredEvents = useMemo(() => {
             Réinitialiser
           </button>
           <button
-            onClick={() => setCreateMode((m) => !m)}
+            onClick={() => {
+              setCreationFeedback("");
+              setCreateMode((m) => !m);
+            }}
             style={{ padding: "8px 14px", borderRadius: 12, border: "none", background: "#45DFB1", color: "#FFF", fontWeight: 700 }}
           >
             {createMode ? "Annuler" : "Créer un évènement"}
@@ -663,6 +686,7 @@ const filteredEvents = useMemo(() => {
                 autoPan={true}                // ✅ active le recentrage automatique
                 autoPanPadding={[50, 100]}    // ✅ ajoute une marge (100px vers le haut)
                 interactive={true}
+                open={true}                   // ✅ ouvre automatiquement à la création
               >
 
                 <div style={{ minWidth: 240 }}>

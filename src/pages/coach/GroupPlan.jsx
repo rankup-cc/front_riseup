@@ -298,6 +298,14 @@ function computeTotalWeeks(planData, startDate) {
     return Math.max(metadataWeeks, sessionWeeks, historyWeeks, 2);
 }
 
+function resolveCurrentWeekIndex(startDate, totalWeeks) {
+    const start = ensureDate(startDate);
+    if (!start) return 0;
+    const weekFromStart = weeksBetween(start, new Date());
+    const upperBound = Math.max(0, Number.isFinite(totalWeeks) ? totalWeeks - 1 : 0);
+    return Math.min(Math.max(weekFromStart, 0), upperBound);
+}
+
 const PRIMARY_PACES = [
     { key: "ef", label: "Endurance fondamentale" },
     { key: "seuil", label: "Seuil" },
@@ -785,6 +793,7 @@ export default function GroupPlan() {
     const [modalSession, setModalSession] = useState(null);
     const [planStartDate, setPlanStartDate] = useState(null);
     const planStartDateRef = useRef(null);
+    const lastPlanKeyRef = useRef(null);
     const groupRef = useRef(null);
     const [athletePacesMap, setAthletePacesMap] = useState({});
     const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
@@ -799,12 +808,18 @@ export default function GroupPlan() {
     const [feedbackLoading, setFeedbackLoading] = useState(false);
     const [feedbackError, setFeedbackError] = useState("");
     const [loadView, setLoadView] = useState("week");
+    const [loadHistoryFilter, setLoadHistoryFilter] = useState("all");
     const currentWeekSetRef = useRef(false);
 
     const fetchPlanAndSummary = useCallback(
         async (athleteId = null, groupContext = null) => {
             const cacheKey = `plan-cache-${groupId}-${athleteId || "group"}`;
             try {
+                const targetKey = `${groupId}-${athleteId ? `athlete-${athleteId}` : "group"}`;
+                if (lastPlanKeyRef.current !== targetKey) {
+                    currentWeekSetRef.current = false; // nouveau contexte : recalculer la semaine courante
+                    lastPlanKeyRef.current = targetKey;
+                }
                 const query = athleteId ? `?athlete_id=${athleteId}` : "";
                 const [planRes, summaryRes] = await Promise.all([
                     api.get(`/coach/groups/${groupId}/plan${query}`),
@@ -842,11 +857,17 @@ export default function GroupPlan() {
                 setWeeks(
                     mergeSessionsIntoGrid(planData.sessions, buildEmptyWeeks(weeksCount, disabledSlots))
                 );
+                if (!currentWeekSetRef.current) {
+                    const targetWeek = resolveCurrentWeekIndex(inferredStart, weeksCount);
+                    setCurrentWeekIndex(targetWeek);
+                    currentWeekSetRef.current = true;
+                }
                 if (typeof localStorage !== "undefined") {
                     localStorage.setItem(cacheKey, JSON.stringify(planData));
                 }
                 setSummary(summaryRes.data || null);
                 setHistoryFilter("all");
+                setLoadHistoryFilter("all");
                 setPlanContext({
                     scope: athleteId ? "athlete" : "group",
                     athleteId,
@@ -998,17 +1019,12 @@ export default function GroupPlan() {
     }, [selectedAthletes, athletePacesMap, fetchAthletePaces]);
 
     useEffect(() => {
-        if (!hasSelectedAthlete) return;
-        const target = selectedAthletes[0];
-        fetchPlanAndSummary(target);
-        fetchFeedbacks(target, currentWeekIndex);
-    }, [hasSelectedAthlete, selectedAthletes, fetchPlanAndSummary, fetchFeedbacks, currentWeekIndex]);
-
-    useEffect(() => {
         const target = selectedAthletes.length === 1 ? selectedAthletes[0] : null;
+        const weekParam =
+            loadHistoryFilter === "all" ? null : Number.isFinite(Number(loadHistoryFilter)) ? Number(loadHistoryFilter) : null;
         fetchPlanAndSummary(target);
-        fetchFeedbacks(target, currentWeekIndex);
-    }, [selectedAthletes, fetchPlanAndSummary, fetchFeedbacks, currentWeekIndex]);
+        fetchFeedbacks(target, weekParam);
+    }, [selectedAthletes, loadHistoryFilter, fetchPlanAndSummary, fetchFeedbacks]);
 
     const openSessionModal = (weekIndex, dayOfWeek, slot) => {
         setModalSession({ weekIndex, dayOfWeek, slot });
@@ -1319,13 +1335,33 @@ export default function GroupPlan() {
             .sort((a, b) => a.week_index - b.week_index)
             .map((week) => ({
                 value: String(week.week_index),
-                label: `Semaine ${Number(week.week_index) + 1}`,
+                label:
+                    formatWeekRangeLabel(planStartDate, week.week_index) ||
+                    `Semaine ${Number(week.week_index) + 1}`,
             }));
-    }, [weeks]);
+    }, [weeks, planStartDate]);
+
+    const loadHistoryOptions = useMemo(() => {
+        if (!weeks?.length) return [];
+        return weeks
+            .slice()
+            .sort((a, b) => a.week_index - b.week_index)
+            .map((week) => ({
+                value: String(week.week_index),
+                label:
+                    formatWeekRangeLabel(planStartDate, week.week_index) ||
+                    `Semaine ${Number(week.week_index) + 1}`,
+            }));
+    }, [weeks, planStartDate]);
+
+    const targetFeedbacks = useMemo(() => {
+        if (loadHistoryFilter === "all") return feedbacks;
+        return feedbacks.filter((fb) => String(fb.week_index) === String(loadHistoryFilter));
+    }, [feedbacks, loadHistoryFilter]);
 
     const loadEntries = useMemo(() => {
-        if (!feedbacks.length) return [];
-        return feedbacks.map((fb) => {
+        if (!targetFeedbacks.length) return [];
+        return targetFeedbacks.map((fb) => {
             const paceSec = parsePaceSeconds(fb.pace);
             const distance = Number(fb.distance);
             let durationSec = 0;
@@ -1342,7 +1378,7 @@ export default function GroupPlan() {
                 date,
             };
         });
-    }, [feedbacks]);
+    }, [targetFeedbacks]);
 
     const feedbackByDay = useMemo(() => {
         const base = Array.from({ length: 7 }, (_, day) => ({
@@ -1350,14 +1386,16 @@ export default function GroupPlan() {
             am: [],
             pm: [],
         }));
-        feedbacks.forEach((fb) => {
-            if (Number(fb.week_index) !== currentWeekIndex) return;
+        targetFeedbacks.forEach((fb) => {
+            if (loadHistoryFilter !== "all" && String(fb.week_index) !== String(loadHistoryFilter)) {
+                return;
+            }
             const dayIdx = Number.isFinite(Number(fb.day_of_week)) ? Number(fb.day_of_week) : 0;
             const slot = fb.session_slot === "pm" ? "pm" : "am";
             base[dayIdx][slot].push(fb);
         });
         return base;
-    }, [feedbacks, currentWeekIndex]);
+    }, [targetFeedbacks, loadHistoryFilter]);
 
     const visibleLoadData = useMemo(() => {
         const baseDate = ensureDate(planStartDate);
@@ -2164,18 +2202,32 @@ export default function GroupPlan() {
                 <Card className="plan-summary-card">
                     <CardHeader className="plan-summary-header">
                         <div>
-                            <CardTitle>Charge d’entraînement (RPE)</CardTitle>
-                            <p className="text-sm text-muted-foreground">
-                                Charge = RPE × durée des blocs envoyés par l’athlète.
-                            </p>
-                        </div>
-                        <div className="plan-summary-filters">
-                            <select
-                                className="history-select"
-                                value={loadView}
-                                onChange={(e) => setLoadView(e.target.value)}
-                            >
-                                {TRAINING_LOAD_VIEWS.map((opt) => (
+                    <CardTitle>Charge d’entraînement (RPE)</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                        Charge = RPE × durée des blocs envoyés par l’athlète.
+                    </p>
+                </div>
+                <div className="plan-summary-filters">
+                    {loadHistoryOptions.length > 0 && (
+                        <select
+                            className="history-select"
+                            value={loadHistoryFilter}
+                            onChange={(e) => setLoadHistoryFilter(e.target.value)}
+                        >
+                            <option value="all">Toutes les semaines</option>
+                            {loadHistoryOptions.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                </option>
+                            ))}
+                        </select>
+                    )}
+                    <select
+                        className="history-select"
+                        value={loadView}
+                        onChange={(e) => setLoadView(e.target.value)}
+                    >
+                        {TRAINING_LOAD_VIEWS.map((opt) => (
                                     <option key={opt.key} value={opt.key}>
                                         {opt.label}
                                     </option>

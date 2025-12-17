@@ -303,6 +303,34 @@ useEffect(() => {
     }
   }
 
+  async function deleteMessage(messageId) {
+    if (!messageId) return;
+    if (!(activeTab === "events" && selectedEvent)) return;
+
+    try {
+      const token = await fetchCsrfToken();
+      const res = await fetch(
+        `${API_BASE}/api/events/${selectedEvent.id}/messages/${messageId}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+          headers: {
+            "X-XSRF-TOKEN": token,
+          },
+        }
+      );
+
+      if (!res.ok) {
+        console.error("Erreur suppression message", res.status);
+        return;
+      }
+
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   async function handleSendFriendRequest(friendId) {
     if (!friendId) return;
     try {
@@ -524,12 +552,38 @@ useEffect(() => {
               {messages.map((msg) => {
                 const isOwnMessage =
                   msg.user_id === user.id || msg.sender_id === user.id;
+                const isEventOwner =
+                  activeTab === "events" &&
+                  selectedEvent &&
+                  selectedEvent.created_by === user?.id;
+                const canDelete = isOwnMessage || isEventOwner;
                 return (
                   <div
                     key={msg.id}
                     style={isOwnMessage ? userMessageStyle : otherMessageStyle}
                   >
-                    <p style={{ margin: 0 }}>{msg.message}</p>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                      <p style={{ margin: 0, flex: 1 }}>{msg.message}</p>
+                      {canDelete && (
+                        <button
+                          style={{
+                            border: "none",
+                            background: "transparent",
+                            color: "#ef4444",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                          onClick={() => deleteMessage(msg.id)}
+                          title="Supprimer ce message"
+                        >
+                          ×
+                          <span style={{ fontSize: 12 }}>Supprimer</span>
+                        </button>
+                      )}
+                    </div>
                     <small>{new Date(msg.created_at).toLocaleString()}</small>
                   </div>
                 );
