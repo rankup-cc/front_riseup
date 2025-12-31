@@ -269,8 +269,10 @@
       rankGrid.innerHTML = '<p class="empty-state">Calcul en cours…</p>';
       schedulePostHeight(false);
 
+      const API_BASE = "https://backend.riseupmotion.com";
+
       try {
-        const res = await fetch(`https://api-front.riseupmotion.com/calcul/${tab}`, {
+        const res = await fetch(`${API_BASE}/api/calcul/${tab}`, {
           method:'POST',
           headers:{'Content-Type':'application/json'},
           body:JSON.stringify(payload)

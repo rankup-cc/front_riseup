@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuthStore } from "../../hooks/AuthStore";
 
 const RANKS = ["S", "A", "B", "C", "D", "E", "F"];
-const API_BASE = (import.meta.env.VITE_BACKEND_URL || "http://backend.react.test:8000").replace(/\/$/, "");
+const API_BASE = (import.meta.env.VITE_BACKEND_URL || "https://backend.riseupmotion.com").replace(/\/$/, "");
 const EVENTS_URL = `${API_BASE}/api/events`;
 
 const rankColor = (r) =>

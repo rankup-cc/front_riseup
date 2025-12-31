@@ -9,7 +9,7 @@ import { usePaces } from "../context/PacesContext"; // garde le même chemin par
 import AthletePlanView from "@/components/profile/AthletePlanView.jsx";
 
 /* -------------------- CONFIG API LARAVEL (local/proxy) -------------------- */
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://backend.react.test:8000";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://backend.riseupmotion.com";
 const API_URL = (import.meta.env.VITE_API_URL || `${BACKEND_URL}/api`).replace(/\/+$/, "");
 
 // helper pour lire un cookie (XSRF-TOKEN posé par /sanctum/csrf-cookie)

@@ -57,7 +57,7 @@ export default function AthletePlanPage() {
 
     const API_URL =
         import.meta.env.VITE_API_URL ||
-        `${(import.meta.env.VITE_BACKEND_URL || "http://backend.react.test:8000").replace(/\/$/, "")}/api`;
+        `${(import.meta.env.VITE_BACKEND_URL || "https://backend.riseupmotion.com").replace(/\/$/, "")}/api`;
     const getCookie = (name) => {
         return document.cookie
             .split("; ")

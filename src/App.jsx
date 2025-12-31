@@ -30,7 +30,7 @@ import GroupPlan from "@/pages/coach/GroupPlan.jsx";
 import CoachPending from "@/pages/coach/CoachPending.jsx";
 import AthletePlanPage from "@/pages/AthletePlanPage.jsx";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://backend.react.test:8000";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://backend.riseupmotion.com";
 
 function AppLayout() {
     const fetchUser = useAuthStore((state) => state.fetchUser);

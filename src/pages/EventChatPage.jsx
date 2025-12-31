@@ -2,7 +2,7 @@
 import { useAuthStore } from "../hooks/AuthStore";
 import { useNavigate, useParams } from "react-router-dom";
 
-const API_BASE = (import.meta.env.VITE_BACKEND_URL || "http://backend.react.test:8000").replace(/\/$/, "");
+const API_BASE = (import.meta.env.VITE_BACKEND_URL || "https://backend.riseupmotion.com").replace(/\/$/, "");
 const TABS = [
   { key: "events", label: "Événements" },
   { key: "groups", label: "Groupes & amis" },
