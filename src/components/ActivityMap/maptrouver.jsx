@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuthStore } from "../../hooks/AuthStore";
 
 const RANKS = ["S", "A", "B", "C", "D", "E", "F"];
+const API_BASE = (import.meta.env.VITE_BACKEND_URL || "http://backend.react.test:8000").replace(/\/$/, "");
+const EVENTS_URL = `${API_BASE}/api/events`;
 
 const rankColor = (r) =>
   ({
@@ -63,7 +65,7 @@ export default function MapTrouver({
 
 useEffect(() => {
   const fetchEvents = () => {
-    fetch("http://backend.react.test:8000/api/events", {
+    fetch(EVENTS_URL, {
       credentials: "include",
     })
       .then((res) => res.json())
@@ -153,7 +155,7 @@ async function saveEvent() {
 
   try {
     const csrfToken = getCsrfToken();
-    const res = await fetch("http://backend.react.test:8000/api/events", {
+    const res = await fetch(EVENTS_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -189,7 +191,7 @@ async function saveEvent() {
 
     // Auto-inscription à l'évènement fraîchement créé
     try {
-      await fetch(`http://backend.react.test:8000/api/events/${newEvent.id}/join`, {
+      await fetch(`${EVENTS_URL}/${newEvent.id}/join`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -218,7 +220,7 @@ async function saveEvent() {
 async function joinEvent(eventId) {
   try {
     const csrfToken = getCsrfToken();
-    const res = await fetch(`http://backend.react.test:8000/api/events/${eventId}/join`, {
+    const res = await fetch(`${EVENTS_URL}/${eventId}/join`, {
       method: "POST",
       credentials: "include",
       headers: {
@@ -247,7 +249,7 @@ async function joinEvent(eventId) {
 async function leaveEvent(eventId) {
   try {
     const csrfToken = getCsrfToken();
-    const res = await fetch(`http://backend.react.test:8000/api/events/${eventId}/leave`, {
+    const res = await fetch(`${EVENTS_URL}/${eventId}/leave`, {
       method: "DELETE",
       credentials: "include",
       headers: {
@@ -275,7 +277,7 @@ async function deleteEvent(eventId) {
 
   try {
     const csrfToken = getCsrfToken();
-    const res = await fetch(`http://backend.react.test:8000/api/events/${eventId}`, {
+    const res = await fetch(`${EVENTS_URL}/${eventId}`, {
       method: "DELETE",
       credentials: "include",
       headers: {

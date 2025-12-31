@@ -2,9 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useAuthStore } from "../../hooks/AuthStore";
 import { useNavigate } from "react-router-dom";
 
-
 const ActivityFeed = () => {
-
+const API_BASE = (import.meta.env.VITE_BACKEND_URL || "http://backend.react.test:8000").replace(/\/$/, "");
+const EVENTS_URL = `${API_BASE}/api/events`;
 const navigate = useNavigate();
 const [activeTab, setActiveTab] = useState("activities");
 const [events, setEvents] = useState([]);
@@ -39,7 +39,7 @@ const [filterType, setFilterType] = useState("");
 
   // --- Charger les événements depuis Laravel ---
 useEffect(() => {
-  fetch("http://backend.react.test:8000/api/events", {
+  fetch(EVENTS_URL, {
     credentials: "include",
   })
     .then((res) => res.json())
@@ -88,7 +88,7 @@ async function createEvent() {
     type: newEvent.type,
     };
 
-    const res = await fetch("http://backend.react.test:8000/api/events", {
+    const res = await fetch(EVENTS_URL, {
       method: "POST",
       credentials: "include",
       headers: {
@@ -121,7 +121,7 @@ async function createEvent() {
 
     // Auto-join pour le créateur
     try {
-      await fetch(`http://backend.react.test:8000/api/events/${data.id}/join`, {
+      await fetch(`${EVENTS_URL}/${data.id}/join`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -135,7 +135,7 @@ async function createEvent() {
     setShowCreateForm(false);
     // Force un petit rechargement global des events après 1 seconde
     setTimeout(() => {
-      fetch("http://backend.react.test:8000/api/events", { credentials: "include" })
+      fetch(EVENTS_URL, { credentials: "include" })
         .then((res) => res.json())
         .then((refreshed) => setEvents((refreshed || []).filter((ev) => ev.created_by)))
         .catch((err) => console.error("Erreur refresh events:", err));
@@ -171,7 +171,7 @@ async function createEvent() {
   // --- Rejoindre / quitter un événement ---
   async function joinEvent(eventId) {
     const csrfToken = getCsrfToken();
-    const res = await fetch(`http://backend.react.test:8000/api/events/${eventId}/join`, {
+    const res = await fetch(`${EVENTS_URL}/${eventId}/join`, {
       method: "POST",
       credentials: "include",
       headers: {
@@ -200,7 +200,7 @@ async function createEvent() {
 
   async function leaveEvent(eventId) {
     const csrfToken = getCsrfToken();
-    const res = await fetch(`http://backend.react.test:8000/api/events/${eventId}/leave`, {
+    const res = await fetch(`${EVENTS_URL}/${eventId}/leave`, {
       method: "DELETE",
       credentials: "include",
       headers: {
@@ -232,7 +232,7 @@ async function createEvent() {
     if (!window.confirm("Supprimer cet évènement ?")) return;
 
     const csrfToken = getCsrfToken();
-    await fetch(`http://backend.react.test:8000/api/events/${eventId}`, {
+    await fetch(`${EVENTS_URL}/${eventId}`, {
       method: "DELETE",
       credentials: "include",
       headers: {
