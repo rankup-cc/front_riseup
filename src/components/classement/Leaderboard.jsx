@@ -111,8 +111,15 @@ export default function Leaderboard() {
                             </tr>
                         </thead>
                         <tbody>
-                            {rows.map((row, index) => (
-                                <tr key={`${row.user_id}-${row.event}-${index}`}>
+                            {rows.map((row, index) => {
+                                let rowClass = "";
+                                if (index === 0) rowClass = "leaderboard-row--gold";
+                                else if (index === 1) rowClass = "leaderboard-row--silver";
+                                else if (index === 2) rowClass = "leaderboard-row--bronze";
+                                else if (index < 50) rowClass = "leaderboard-row--top50";
+
+                                return (
+                                <tr key={`${row.user_id}-${row.event}-${index}`} className={rowClass}>
                                     <td>{index + 1}</td>
                                     <td>{row.name}</td>
                                     <td>{row.event ?? row.best_event}</td>
@@ -120,7 +127,8 @@ export default function Leaderboard() {
                                     <td>{row.rank ?? row.best_rank ?? "—"}</td>
                                     <td>{row.performance || "—"}</td>
                                 </tr>
-                            ))}
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
