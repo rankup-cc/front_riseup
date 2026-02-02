@@ -58,7 +58,7 @@ const styles = {
         fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
     },
     hero: {
-        maxWidth: "100%",
+        maxWidth: "1100px",
         width: "100%",
         margin: "0 auto 2.5rem",
         display: "grid",
