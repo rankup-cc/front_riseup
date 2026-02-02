@@ -325,13 +325,14 @@ const filteredEvents = useMemo(() => {
 
   return (
     <div
+      className="map-trouver"
       style={{
         background: "#213A57",
         borderRadius: 16,
-        padding:16,
+        padding: 16,
         marginLeft: 20,
         marginRight: 20,
-        marginTop: 20,  
+        marginTop: 20,
         border: "1px solid rgba(69,223,177,0.25)",
       }}
     >
@@ -353,8 +354,8 @@ const filteredEvents = useMemo(() => {
       )}
 
       {/* Toolbar filtres + bouton événement */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 12 }}>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+      <div className="map-trouver__toolbar" style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 12 }}>
+        <div className="map-trouver__ranks" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {RANKS.map((r) => (
             <button
               key={r}
@@ -373,7 +374,7 @@ const filteredEvents = useMemo(() => {
           ))}
         </div>
 
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8, color: "#E0F2F1" }}>
+        <div className="map-trouver__actions" style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8, color: "#E0F2F1" }}>
           Heure:
           <input
             type="number"
@@ -423,6 +424,7 @@ const filteredEvents = useMemo(() => {
       </div>
       {/* Filtres de recherche pour les événements */}
       <div
+        className="map-trouver__filters"
         style={{
           display: "flex",
           flexWrap: "wrap",
@@ -504,7 +506,7 @@ const filteredEvents = useMemo(() => {
       </div>
 
       {/* Carte */}
-      <div style={{ width: "100%", height: "600px", borderRadius: 12, overflow: "hidden", border: "1px solid rgba(69,223,177,0.25)" }}>
+      <div className="map-trouver__map" style={{ width: "100%", height: "600px", borderRadius: 12, overflow: "hidden", border: "1px solid rgba(69,223,177,0.25)" }}>
         <MapContainer center={userPos} zoom={14} scrollWheelZoom style={{ width: "100%", height: "100%" }} preferCanvas>
           <TileLayer
             url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
@@ -798,6 +800,7 @@ const filteredEvents = useMemo(() => {
 
       {/* Résumé sous la carte */}
       <div
+        className="map-trouver__summary"
         style={{
           marginTop: 12,
           color: "#E0F2F1",

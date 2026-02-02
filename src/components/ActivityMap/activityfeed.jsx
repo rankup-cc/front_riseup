@@ -299,6 +299,7 @@ async function searchAddress(query) {
 
   return (
     <div
+      className="activity-feed"
       style={{
         backgroundColor: "#213A57",
         borderRadius: "20px",
@@ -309,6 +310,7 @@ async function searchAddress(query) {
     >
       {/* --- Onglets --- */}
       <div
+        className="activity-feed__header"
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -324,7 +326,7 @@ async function searchAddress(query) {
             : "Événements communautaires"}
         </h3>
 
-        <div style={{ display: "flex", gap: 10 }}>
+        <div className="activity-feed__tabs" style={{ display: "flex", gap: 10 }}>
           <button
             onClick={() => setActiveTab("activities")}
             style={{
@@ -363,6 +365,7 @@ async function searchAddress(query) {
         <>
           {/* Actions */}
           <div
+            className="activity-feed__actions"
             style={{
               display: "flex",
               justifyContent: "space-between",
@@ -585,6 +588,7 @@ async function searchAddress(query) {
           )}
           {/* Filtres */}
           <div
+            className="activity-feed__filters"
             style={{
               display: "flex",
               flexWrap: "wrap",
@@ -661,7 +665,7 @@ async function searchAddress(query) {
           </div>
 
           {/* Liste d'événements */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
+          <div className="activity-feed__list" style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
             {displayedEvents.length === 0 ? (
               <p style={{ color: "#E0F2F1" }}>
                 Aucun événement publié pour le moment.
@@ -679,6 +683,7 @@ async function searchAddress(query) {
                   return (
                     <div
                       key={event.id}
+                      className="activity-feed__card"
                       style={{
                         backgroundColor: "#E0F2F1",
                         borderRadius: "15px",
@@ -715,7 +720,7 @@ async function searchAddress(query) {
                         👥 Participants : {event.participants_count ?? 0}
                       </div>
 
-                      <div style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "center" }}>
+                      <div className="activity-feed__card-actions" style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "center" }}>
                         <button
                           onClick={() =>
                             event.isJoined ? leaveEvent(event.id) : joinEvent(event.id)

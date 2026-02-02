@@ -2,10 +2,10 @@
 .trouver-page {
   display: flex;
   flex-direction: column;
-  gap: 16px;              /* espace entre la carte et le feed */    /* marge interne */
-  width: 1300px;      /* limite la largeur sur grand écran */
-  margin:auto;  
-  margin-top: 10px;      /* centre la page */
+  gap: 16px;
+  width: min(1300px, 100%);
+  margin: 10px auto 0;
+  padding: 0 12px 24px;
 }
 
 /* Bloc carte : donne une vraie hauteur pour Leaflet/iframe */
@@ -15,7 +15,7 @@
   overflow: hidden;       /* coins arrondis visibles */
   border: 1px solid rgba(69, 223, 177, 0.25);
   background: #E0F2F1; 
-  padding-right: 40px; 
+  padding-right: 40px;
   padding-bottom: 20px;  /* fond discret pendant le chargement */
 }
 
@@ -36,7 +36,7 @@
   border-radius: 12px;
   border: 1px solid rgba(69, 223, 177, 0.25);
   background: #E0F2F1;
-  height: 1500px;
+  min-height: 240px;
   padding: 16px;
   max-width: 1280px;     /* ↑ avant ~960/1000 */
   width: 100%;
@@ -44,12 +44,79 @@
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .trouver-page {
-    padding: 12px;
+    padding: 10px 10px 20px;
+    gap: 12px;
   }
   .trouver-map {
-    height: 60vh;
-    min-height: 360px;
+    height: 52vh;
+    min-height: 300px;
+    padding-right: 0;
+    padding-bottom: 0;
+  }
+  .trouver-feed {
+    height: auto;
+    margin-top: 16px;
+    padding: 12px;
+  }
+  .map-trouver {
+    margin-left: 0;
+    margin-right: 0;
+    padding: 12px;
+  }
+  .map-trouver__toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .map-trouver__actions {
+    margin-left: 0;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .map-trouver__actions input {
+    width: 48px;
+  }
+  .map-trouver__filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .map-trouver__filters input,
+  .map-trouver__filters select,
+  .map-trouver__filters button {
+    width: 100%;
+  }
+  .map-trouver__map {
+    height: 44vh;
+    min-height: 260px;
+  }
+  .map-trouver__summary {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .activity-feed {
+    padding: 16px;
+  }
+  .activity-feed__header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .activity-feed__actions {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .activity-feed__filters {
+    flex-direction: column;
+  }
+  .activity-feed__filters input,
+  .activity-feed__filters select,
+  .activity-feed__filters button {
+    width: 100%;
+  }
+  .activity-feed__card-actions {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
