@@ -504,7 +504,7 @@ const filteredEvents = useMemo(() => {
       </div>
 
       {/* Carte */}
-      <div className="map-trouver__map" style={{ width: "100%", height: "600px", borderRadius: 12, overflow: "hidden", border: "1px solid rgba(69,223,177,0.25)" }}>
+      <div className="map-trouver__map" style={{ width: "100%", borderRadius: 12, overflow: "hidden", border: "1px solid rgba(69,223,177,0.25)" }}>
         <MapContainer center={userPos} zoom={14} scrollWheelZoom style={{ width: "100%", height: "100%" }} preferCanvas>
           <TileLayer
             url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"

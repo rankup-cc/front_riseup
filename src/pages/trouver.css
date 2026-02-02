@@ -25,6 +25,10 @@
   box-sizing: border-box;
 }
 
+.map-trouver__map {
+  height: 520px;
+}
+
 /* Assure que la carte occupe 100% de son conteneur */
 .trouver-map > * {
   width: 100%;
@@ -56,8 +60,8 @@
     gap: 12px;
   }
   .trouver-map {
-    height: 52vh;
-    min-height: 300px;
+    height: auto;
+    min-height: 0;
     padding-right: 0;
     padding-bottom: 0;
   }
@@ -93,8 +97,8 @@
     width: 100%;
   }
   .map-trouver__map {
-    height: 44vh;
-    min-height: 260px;
+    height: 36vh;
+    min-height: 200px;
   }
   .map-trouver__summary {
     flex-direction: column;
