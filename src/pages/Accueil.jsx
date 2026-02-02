@@ -58,7 +58,8 @@ const styles = {
         fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
     },
     hero: {
-        maxWidth: "1100px",
+        maxWidth: "100%",
+        width: "100%",
         margin: "0 auto 2.5rem",
         display: "grid",
         gap: "2rem",
@@ -77,13 +78,13 @@ const styles = {
         marginBottom: "0.5rem",
     },
     heroTitle: {
-        fontSize: "2.5rem",
+        fontSize: "clamp(1.9rem, 2.4vw + 1rem, 3rem)",
         lineHeight: 1.2,
         marginBottom: "1rem",
         maxWidth: "100%",
     },
     heroText: {
-        fontSize: "1rem",
+        fontSize: "clamp(0.95rem, 0.4vw + 0.85rem, 1.1rem)",
         lineHeight: 1.6,
         marginBottom: "1.5rem",
         color: "#C7DBE6",
@@ -141,17 +142,15 @@ export default function Accueil() {
         : { href: "/mon-plan", label: "Trouver un coach" };
 
     return (
-        <div style={styles.wrapper}>
-            <section style={styles.hero}>
+        <div style={styles.wrapper} className="home-wrapper">
+            <section style={styles.hero} className="home-hero">
                 <div>
                     <p style={styles.heroEyebrow}>RiseUp • Coaching & Performance</p>
                     <h1 style={styles.heroTitle}>
-                        Une seule application pour planifier vos entraînements,
-                        trouver des partenaires et grimper dans le classement.
+                        Planifiez, trouvez, progressez.
                     </h1>
                     <p style={styles.heroText}>
-                        Que vous soyez coach ou athlète, tout
-                        est conçu pour fluidifier la préparation sportive.
+                        Coach ou athlète, tout est centralisé pour aller droit à l’essentiel.
                     </p>
                     <div className="home-cta">
                         <Link to={primaryCta.href} className="home-btn primary">

@@ -15,8 +15,8 @@
   overflow: hidden;       /* coins arrondis visibles */
   border: 1px solid rgba(69, 223, 177, 0.25);
   background: #E0F2F1; 
-  padding-right: 40px;
-  padding-bottom: 20px;  /* fond discret pendant le chargement */
+  padding-right: 0;
+  padding-bottom: 0;
 }
 
 /* Assure que la carte occupe 100% de son conteneur */
