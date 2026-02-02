@@ -17,6 +17,12 @@
   background: #E0F2F1; 
   padding-right: 0;
   padding-bottom: 0;
+  box-sizing: border-box;
+}
+
+.map-trouver {
+  margin: 0;
+  box-sizing: border-box;
 }
 
 /* Assure que la carte occupe 100% de son conteneur */

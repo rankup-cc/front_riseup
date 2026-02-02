@@ -330,9 +330,7 @@ const filteredEvents = useMemo(() => {
         background: "#213A57",
         borderRadius: 16,
         padding: 16,
-        marginLeft: 20,
-        marginRight: 20,
-        marginTop: 20,
+        width: "100%",
         border: "1px solid rgba(69,223,177,0.25)",
       }}
     >
